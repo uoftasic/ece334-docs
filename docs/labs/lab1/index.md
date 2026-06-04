@@ -6,243 +6,211 @@
 
 --8<-- "includes/conventions.md"
 
-Tools: **XSchem** + **ngspice**. Scriptable parts (RC, parameter extraction) run from
-the terminal; schematic drawing uses the GUI.
+In this lab you learn the **loop you will use all term**: build a circuit in XSchem,
+press a button to simulate it, and analyse the result in Python. Tools: **XSchem**
+(schematics + launch buttons), **ngspice** (simulator), and a tiny course Python
+helper, **`ece334lib`**, that you drive from a Jupyter notebook.
 
-> 📷 *Figure: Lab 1 overview — XSchem inverter schematic or gtkwave Vi/Vo* — screenshot pending (`images/01-lab1-overview.png`)
+## Your interactive workbench
 
-## A note on scripting (read before P1)
+Each lab folder ships three kinds of files that work together:
 
-Part of this lab asks you to extract device parameters from simulation data using a few lines
-of **Python**. If you have never written a script, that is completely fine — this section is a
-gentle on-ramp, and you will not be thrown into the deep end.
+| File | What it is |
+|------|------------|
+| `xschem/*_tb.sch` | **Testbenches** — ready-made schematics with stimulus, load, and **launcher buttons**. You drop your own circuit into the DUT. |
+| `lab1.ipynb` | A **Jupyter notebook** that loads the simulation results and measures them with `ece334lib`. |
+| `spice/*.spice` | Plain reference decks, if you prefer the command line. |
 
-!!! note "Why bother scripting at all?"
-    A SPICE simulation does not hand you "the threshold voltage." It hands you a **table of
-    numbers** — hundreds of voltage/current pairs in a text file. Turning that table into a
-    single meaningful answer (a slope, an intercept, a fitted parameter) is work, and doing it
-    **by hand or in a spreadsheet is slow, error-prone, and impossible to reproduce**. A
-    five-line script does it in a way that is fast, exact, and — crucially — **re-runnable**:
-    change one transistor size, re-simulate, re-run the script, and your answer updates
-    instantly. Every working chip designer automates this kind of post-processing. The skill
-    is genuinely worth the small upfront effort, and it does not expire when the course ends.
+### The naming contract (important)
 
-### Scripting primitives you'll actually use
+The testbench and the notebook find your signals **by net name**. Whenever you build a
+circuit, use these names and the analysis "just works":
 
-You only need a handful of ideas to do the analysis in this lab. Here they are, each in one
-breath, before you meet them in real code below.
+| Net | Meaning |
+|-----|---------|
+| `in` | stimulus input |
+| `out` | the output you measure |
+| `vdd` | 1.8 V supply |
+| `vss` | ground (0 V) |
 
-**1. Data is loaded as an *array*.** ngspice writes its results to a text file with columns
-(e.g. time, voltage, current). [NumPy](https://numpy.org/) reads the whole file into a 2-D
-table of numbers called an **array**:
+A testbench's **DUT** (device-under-test) is an empty box symbol with exactly these
+four pins. You open it and build your circuit inside — the pins are the contract.
 
-```python
-import numpy as np                 # the standard numerical library
-d = np.loadtxt('nmos_iv.txt')      # d is now a table: rows = sweep points, cols = columns
-```
+### The launcher buttons
 
-**2. Pick a column with `[:, k]`.** The comma separates *rows* from *columns*. A colon `:`
-means "all of them." So `d[:, 0]` is "all rows, column 0":
+Inside every `*_tb.sch` you'll see clickable buttons (the arrow shapes):
 
-```python
-vgs = d[:, 0]      # all rows of column 0  -> the gate voltage at each sweep point
-idd = d[:, 1]      # all rows of column 1  -> the drain current at each sweep point
-```
+- **Netlist & Simulate** — saves, netlists, and runs ngspice. Writes a named `.raw`
+  results file (e.g. `rc_tb.raw`).
+- **Annotate OP** — overlays DC operating-point node voltages on the schematic.
+- **Run analysis notebook** — executes `lab1.ipynb` for you.
 
-**3. Math applies to a whole array at once.** You don't loop over points by hand. Writing
-`np.sqrt(idd)` takes the square root of *every* current value and gives you back an array of
-the same length. This "do it to the whole column" style is what makes the analysis short.
-
-**4. A *boolean mask* selects the rows you care about.** A comparison like `vgs > 1.0`
-produces an array of `True`/`False`, one per point. Combine masks with `&` ("and"). Putting a
-mask in the brackets keeps only the `True` rows — here, only the strong-inversion part of the
-sweep:
-
-```python
-sel = (vgs > 1.0) & (vgs < 1.7)    # True only where 1.0 V < VGS < 1.7 V
-vgs[sel]                           # just those gate-voltage points
-```
-
-**5. Fit a straight line with `polyfit`.** `np.polyfit(x, y, 1)` finds the best-fit line
-`y = m·x + b` through your points and returns the slope `m` and intercept `b`. From those two
-numbers you recover the physical parameters (the algebra is in the section below):
-
-```python
-m, b = np.polyfit(vgs[sel], sid[sel], 1)   # slope m, intercept b
-```
-
-That is the entire toolkit. Read those five ideas once; when you reach the extraction code,
-every line will already look familiar.
-
-## Preparation
+### Launching the notebook
 
 !!! terminal "In the noVNC desktop terminal"
     ```bash
     . /foss/designs/common/.designinit
     cd /foss/designs/lab1_spice
+    jlab          # starts JupyterLab; open the printed URL, then open lab1.ipynb
     ```
 
-## P1 — RC circuit
+The `jlab` alias and `import ece334lib` are set up by `.designinit` — source it once
+per terminal.
 
-Topology: pulse `Vi` → R1 (1 kΩ) → `Vo` with R2 (2 kΩ) and C1 (0.7 pF) to ground.
-Pulse **1.8 V** high, 3 ns width, 6 ns period, $t_r = t_f = 0.2$ ns.
+??? note "Why script the analysis at all?"
+    A SPICE run doesn't hand you "the rise time" — it hands you a **table of numbers**.
+    Turning that into a meaningful answer by hand is slow and impossible to reproduce. A
+    couple of lines of Python do it in a way that is fast, exact, and **re-runnable**:
+    change a transistor width, re-simulate, re-run the cell, and every number updates.
+    That is exactly how working chip designers post-process simulations.
+
+---
+
+## P1 — RC step response
+
+Open `xschem/rc_tb.sch`. A 1.8 V step drives `R1` (1 kΩ) into `C1` (1 pF) at node
+`out`. The output charges with time constant $\tau = RC$.
 
 ### Hand analysis
 
 $$
 \begin{aligned}
-  V_{o,\mathrm{final}} &= 1.8 \times \frac{R_2}{R_1 + R_2} = 1.20\ \mathrm{V} \\
-  \tau &= (R_1 \parallel R_2)\, C_1 = 0.467\ \mathrm{ns} \\
-  \text{20–80\% rise/fall} &= \tau \ln(4) = 0.647\ \mathrm{ns}
+  \tau &= R\,C = (1\ \mathrm{k}\Omega)(1\ \mathrm{pF}) = 1\ \mathrm{ns} \\
+  t_{r}\,(10\text{–}90\%) &= \tau \ln 9 \approx 2.20\ \mathrm{ns}
 \end{aligned}
 $$
 
-### Simulate from the terminal
+### Simulate & analyse
 
-The committed deck is `spice/rc.spice`:
+1. In `rc_tb.sch`, press **Netlist & Simulate**. This writes `rc_tb.raw`.
+2. In `lab1.ipynb`, run **§1 RC step response**. It loads the result and measures:
 
-```spice
-* Lab 1 P1 - RC circuit (1.8 V)
-Vi n1 0 PULSE(0 1.8 0 0.2n 0.2n 3n 6n)
-R1 n1 n2 1k
-R2 n2 0 2k
-C1 n2 0 0.7p
-.tran 1p 15n
-.control
-run
-wrdata rc.txt v(n1) v(n2)
-.endc
-.end
-```
+   ```python
+   from ece334lib import sim, measure, plot
+   rc = sim.run("xschem/rc_tb.raw")
+   t_rise, _ = measure.edges_10_90(rc, "out", vdd=1.8)
+   plot.transient(rc, ["in", "out"])
+   ```
 
-!!! terminal "In the noVNC desktop terminal"
-    ```bash
-    cd spice
-    ngspice -b rc.spice
-    ```
+   You should see $\tau \approx 1$ ns and $t_r \approx 2.20$ ns — matching the hand
+   analysis exactly.
 
-    The output file `rc.txt` contains columns: time, `v(n1)`, `v(n2)`.
-    Inspect the final value of `Vo` (≈ 1.20 V) and measure 20–80% rise/fall
-    (≈ 0.647 ns; expect slightly longer due to 0.2 ns input edges).
+!!! tip "Make it yours"
+    Change `R1` or `C1` in the schematic, re-simulate, and re-run the cell. Confirm
+    that $\tau$ tracks $R\cdot C$.
 
-> 📷 *Figure: RC waveforms — Vi and Vo vs time, final Vo ≈ 1.2 V* — screenshot pending (`images/02-rc-waveforms.png`)
+---
 
-## Extract $\mu C_\mathrm{ox}$ and $V_t$ (diode-connected)
+## Extract $K_P$ and $V_t$ (diode-connected device)
 
+Before the inverter, extract the device parameters you'll need for its hand estimate.
 A diode-connected device (gate tied to drain) is always in saturation when on, so
-$I_D = \tfrac{1}{2} K_P (W/L)(V_{GS} - V_t)^2$, which makes $\sqrt{I_D}$ **linear** in
-$V_{GS}$:
+$I_D = \tfrac12 K_P (W/L)(V_{GS}-V_t)^2$, which makes $\sqrt{I_D}$ **linear** in $V_{GS}$:
 
-- slope $m = \sqrt{\tfrac{1}{2} K_P (W/L)} \Rightarrow K_P = 2m^2/(W/L)$
-- x-intercept of the line $= V_t$
+- slope $m = \sqrt{\tfrac12 K_P (W/L)} \Rightarrow K_P = 2m^2/(W/L)$
+- x-intercept of the fitted line $= V_t$
 
-We use a long/wide device (W = 10 µm, L = 2 µm) so the square law is clean.
+### Simulate & analyse
 
-### NMOS extraction deck
+1. Open `xschem/diode_tb.sch`. Build a diode-connected NMOS in the DUT (gate+drain → `g`,
+   source+body → `s`; size $W=10$, $L=2$ — **unitless**). Press **Netlist & Simulate**;
+   it writes `diode_nmos.raw`.
+2. Run **§2** of `lab1.ipynb`. `ece334lib` does the fit for you:
 
-```spice
-* NMOS diode-connected extraction
-.lib $PDK_ROOT/sky130A/libs.tech/ngspice/sky130.lib.spice tt
-Vg dg 0 dc 0
-Xn dg dg 0 0 sky130_fd_pr__nfet_01v8 W=10u L=2u
-.dc Vg 0 1.8 0.01
-.control
-run
-let id = -i(Vg)
-wrdata nmos_iv.txt id
-.endc
-.end
-```
+   ```python
+   diode = sim.run("xschem/diode_nmos.raw")
+   res = measure.extract_square_law(diode["g"], diode["id"], wl=10/2, vmin=1.0, vmax=1.7)
+   print(res["Vt"], res["KP"])
+   ```
 
-!!! terminal "In the noVNC desktop terminal"
-    ```bash
-    cd spice
-    ngspice -b nmos_diode.spice
-    ```
+### What the helper is doing (your scripting on-ramp)
 
-    Repeat with `spice/pmos_diode.spice` (source/bulk at 1.8 V, sweep gate down) to get
-    $|V_{tp}|$ and $K_{Pp}$.
-
-### Fit $\sqrt{I_D}$ vs $V_{GS}$
-
-After running the deck, fit the strong-inversion region ($V_{GS} \in [1.0, 1.7]$ V) in Python
-or by hand. Every line below uses one of the five primitives from
-[the scripting preamble](#scripting-primitives-youll-actually-use) — read it once and this
-should feel familiar rather than mysterious:
+`extract_square_law` is just five lines of NumPy — read them once and the analysis
+stops being mysterious. Each line uses one core idea:
 
 ```python
 import numpy as np
-d = np.loadtxt('nmos_iv.txt')          # (1) load the table ngspice wrote
-vgs, idd = d[:, 0], d[:, 1]            # (2) pull out the VGS and ID columns
-sid = np.sqrt(np.clip(idd, 0, None))  # (3) sqrt(ID) for every point (clip avoids sqrt of <0)
-sel = (vgs > 1.0) & (vgs < 1.7)       # (4) mask: keep only the strong-inversion region
-m, b = np.polyfit(vgs[sel], sid[sel], 1)  # (5) best-fit line through those points
-Vt = -b / m                            # x-intercept of the line is Vt
-WL = 10 / 2                            # W/L of the extraction device (10 um / 2 um)
-KP = 2 * m**2 / WL                     # slope -> KP  (from the algebra above)
-print(f'Vtn = {Vt:.3f} V')
-print(f'KPn = {KP*1e6:.1f} uA/V^2')
+d = np.loadtxt("nmos_iv.txt")           # (1) load a table ngspice wrote (terminal route)
+vgs, idd = d[:, 0], d[:, 1]             # (2) pick the VGS and ID columns with [:, k]
+sid = np.sqrt(np.clip(idd, 0, None))    # (3) math applies to the whole column at once
+sel = (vgs > 1.0) & (vgs < 1.7)         # (4) a boolean mask keeps strong-inversion rows
+m, b = np.polyfit(vgs[sel], sid[sel], 1)  # (5) best-fit line -> slope m, intercept b
+Vt = -b / m                             # x-intercept is Vt
+KP = 2 * m**2 / (10 / 2)                # slope -> KP  (extraction device W/L = 10/2)
+print(f"Vtn = {Vt:.3f} V    KPn = {KP*1e6:.1f} uA/V^2")
 ```
 
-!!! tip "Run it the same way you ran ngspice"
-    Save the snippet as `extract.py` and run `python3 extract.py` from the same `spice/`
-    folder, *after* the ngspice deck has produced `nmos_iv.txt`. Change a device size, re-run
-    the deck, re-run the script — that re-runnability is exactly the point of scripting.
+!!! tip "Prefer the terminal?"
+    The committed deck `spice/nmos_diode.spice` does the same sweep:
+    `ngspice -b nmos_diode.spice` writes `nmos_iv.txt`, which the snippet above loads.
 
-**Typical result (yours will vary):** $V_{tn} \approx 0.45$ V, $K_{Pn} \approx 70\ \mu A/V^2$.
-Record all four numbers for P3 and Lab 3.
+Repeat with `pmos_diode.spice` for $|V_{tp}|$ and $K_{Pp}$. **Record all four numbers** —
+you'll plug them into the inverter timing estimate below. *(Typical on SKY130:
+$V_{tn}\approx0.46$ V, $K_{Pn}\approx170\ \mu A/V^2$; yours will vary with the fit window.)*
 
-> 📷 *Figure: $\sqrt{I_D}$ vs $V_{GS}$ with saturation fit line* — screenshot pending (`images/05-nmos-extraction.png`)
+---
 
-## P2 / L2 — CMOS inverter
+## P2 — CMOS inverter
 
-Devices: `sky130_fd_pr__nfet_01v8` W=1u L=0.5u; `pfet_01v8` W=3u L=0.5u; $C_L = 0.2$ pF.
+Now build a real circuit into the testbench DUT.
 
 !!! xschem "In XSchem"
-    1. Draw `inverter_tb.sch`: NMOS and PMOS from SKY130 library, input `Vi`,
-       output `Vo`, supply 1.8 V, load 0.2 pF.
-    2. **Transfer curve:** add `.dc Vi 0 1.8 0.005` testbench.
-    3. **Transient:** 1.8 V input pulse; `.tran 1p 15n`.
-    4. Netlist and simulate: `n` then `s`, or headlessly:
+    1. Open `xschem/inv_tb.sch`. Note the stimulus (`Vin` pulse on `in`), the load
+       (`Cload` on `out`), the supply (`Vdd`), and the **DUT** box.
+    2. **Double-click the DUT** to open `dut_inv.sch`. Build a CMOS inverter inside it:
+        - PMOS `pfet_01v8`: source → `vdd`, drain → `out`, gate → `in`, body → `vdd`
+        - NMOS `nfet_01v8`: source → `vss`, drain → `out`, gate → `in`, body → `vss`
+        - Sizes: $W_n = 1$, $W_p = 3$, $L = 0.5$ — see the unit warning below.
+       Keep the four pin names (`in`, `out`, `vdd`, `vss`) unchanged.
 
-       ```bash
-       xschem -n -q -o . inverter_tb.sch
-       ngspice -b inverter_tb.spice
-       ```
+    !!! warning "Enter W and L as unitless microns — no `u`"
+        The SKY130 device models are **binned on plain micron numbers**. Type
+        `W=1` and `L=0.5`, *not* `W=1u`/`L=0.5u`. A value with a `u` suffix
+        (i.e. metres) falls outside every bin and ngspice fails with
+        *"could not find a valid modelname"*. This is the single most common
+        first-simulation error — when you see it, check your `u`s.
+    3. Back in `inv_tb.sch`, press **Netlist & Simulate**. It writes both
+       `inv_tb_vtc.raw` (DC sweep) and `inv_tb_tran.raw` (transient).
 
-Reference deck: `spice/inverter_tb.spice`.
+### Transfer curve & noise margins
 
-> 📷 *Figure: inverter VTC — Vo vs Vi DC sweep* — screenshot pending (`images/03-inverter-vtc.png`)
+Run **§2** of `lab1.ipynb`:
 
-> 📷 *Figure: inverter transient — Vi and Vo vs time* — screenshot pending (`images/04-inverter-tran.png`)
-
-## P3 — Equivalent resistance timing
-
-$$
-\begin{aligned}
-  R_{\mathrm{eq},n} &= \frac{1.8}{K_{Pn} \cdot (W/L)_n \cdot (1.8 - V_{tn})} \\
-  R_{\mathrm{eq},p} &= \frac{1.8}{K_{Pp} \cdot (W/L)_p \cdot (1.8 - V_{tp})}
-\end{aligned}
-$$
-
-Predict 10–90% rise/fall with $\approx 2.2 \cdot R_{\mathrm{eq}} \cdot C_L$; compare to the
-L2 transient. Discuss hand vs simulation gap (short-channel effects).
-
-## L3 — Pulse generator
-
-Transistor-level: unit inverters + 2-input NAND (series NMOS W≈2u each, parallel PMOS
-W≈3u @ L=0.5u). Measure **low-going** pulse width at 50% with:
-
-```spice
-.meas tran tpw trig v(out) val=0.9 fall=1 targ v(out) val=0.9 rise=1
+```python
+vtc = sim.run("xschem/inv_tb_vtc.raw")
+nm  = measure.noise_margins(vtc, "in", "out")   # VM, VIL, VIH, VOL, VOH, NMH, NML
+plot.vtc(vtc, "in", "out")
 ```
 
-> 📷 *Figure: pulse generator output waveform* — screenshot pending (`images/06-pulsegen.png`)
+Report the switching threshold $V_M$ and the noise margins $NM_H$, $NM_L$.
+
+### Transient timing vs hand estimate
+
+Run **§3**. It measures propagation delay and edge rates, and compares them with the
+equivalent-resistance estimate built from **your extracted** $K_P$, $V_t$:
+
+$$
+R_{\mathrm{eq}} = \frac{V_{DD}}{K_P (W/L)(V_{DD}-V_t)}, \qquad
+t_{r,f} \approx 2.2\, R_{\mathrm{eq}}\, C_L
+$$
+
+Edit the `KPn, KPp, Vtn, Vtp` values in the cell to your numbers, then compare the
+simulated and hand-estimated $t_r$, $t_f$. Discuss the gap (short-channel effects).
+
+---
+
+## The notebook, rendered
+
+This is the executed `lab1.ipynb` for reference — your own run replaces these numbers
+with your circuit's results.
+
+--8<-- "labs/lab1/notebook/lab1.md"
+
+---
 
 ## Deliverables
 
-- [ ] RC: Vi/Vo plot; measured vs 0.647 ns rise/fall
-- [ ] Extraction: NMOS + PMOS fits; four parameters ($V_{tn}$, $K_{Pn}$, $|V_{tp}|$, $K_{Pp}$)
-- [ ] Inverter: VTC + transient; $V_M$ / noise margins
-- [ ] P3: $R_{\mathrm{eq}}$ estimate vs simulation
-- [ ] L3: pulsegen schematic + pulse-width measurement
+- [ ] **RC:** $V_{in}/V_{out}$ plot; measured $\tau$ and $t_r$ vs hand analysis
+- [ ] **Extraction:** NMOS + PMOS fits; four parameters ($V_{tn}$, $K_{Pn}$, $|V_{tp}|$, $K_{Pp}$)
+- [ ] **Inverter VTC:** $V_M$ and noise margins $NM_H$, $NM_L$
+- [ ] **Inverter transient:** simulated vs hand-estimated $t_r$, $t_f$, $t_{pd}$
