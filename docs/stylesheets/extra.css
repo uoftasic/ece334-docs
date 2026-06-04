@@ -1,0 +1,33 @@
+/* Custom admonitions mirroring the LaTeX tcolorbox styles */
+.md-typeset .admonition.terminal,
+.md-typeset details.terminal { border-color: #0b57d0; }
+.md-typeset .terminal > .admonition-title,
+.md-typeset .terminal > summary {
+  background-color: rgba(11, 87, 208, 0.1);
+}
+.md-typeset .terminal > .admonition-title::before,
+.md-typeset .terminal > summary::before {
+  background-color: #0b57d0;
+  -webkit-mask-image: var(--md-admonition-icon--note);
+          mask-image: var(--md-admonition-icon--note);
+}
+
+.md-typeset .admonition.xschem { border-color: #2e7d32; }
+.md-typeset .xschem > .admonition-title {
+  background-color: rgba(46, 125, 50, 0.1);
+}
+.md-typeset .xschem > .admonition-title::before {
+  background-color: #2e7d32;
+  -webkit-mask-image: var(--md-admonition-icon--note);
+          mask-image: var(--md-admonition-icon--note);
+}
+
+.md-typeset .admonition.magic { border-color: #e65100; }
+.md-typeset .magic > .admonition-title {
+  background-color: rgba(230, 81, 0, 0.1);
+}
+.md-typeset .magic > .admonition-title::before {
+  background-color: #e65100;
+  -webkit-mask-image: var(--md-admonition-icon--note);
+          mask-image: var(--md-admonition-icon--note);
+}

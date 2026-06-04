@@ -1,0 +1,69 @@
+site_name: ECE334 — Digital Electronics
+site_description: Lab manuals, setup guide, and reference for ECE334 (SKY130 open-source flow)
+site_url: https://ece334.github.io/ece334-docs/
+repo_url: https://github.com/ece334/ece334-docs
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - content.tabs.link
+    - search.highlight
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets:
+      base_path: ["docs"]
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started/index.md
+  - Labs:
+      - Lab 0 — XSchem & Magic intro: labs/lab0/index.md
+      - "Lab 0 deep dive: SUE → XSchem": labs/lab0/sue-to-xschem.md
+      - "Lab 0 deep dive: MAX → Magic": labs/lab0/max-to-magic.md
+      - Lab 1 — Basic SPICE: labs/lab1/index.md
+      - Lab 2 — NAND layout, LVS, PEX: labs/lab2/index.md
+      - "Lab 2 deep dive: Layout/LVS/PEX": labs/lab2/lvs-pex.md
+      - Lab 3 — Digital circuits: labs/lab3/index.md
+      - Lab 4 — DFF & 6T SRAM: labs/lab4/index.md
+  - Reference:
+      - XSchem cheatsheet: reference/xschem-cheatsheet.md
+      - Magic cheatsheet: reference/magic-cheatsheet.md
+  - Maintainers:
+      - Building the docs: maintainers/building.md
+  - Legacy handouts: legacy/index.md
