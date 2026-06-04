@@ -1,0 +1,161 @@
+% ECE334 shared lab manual style
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{ece334}[2026/06/02 ECE334 lab manual style]
+
+\RequirePackage[margin=1in]{geometry}
+\RequirePackage[T1]{fontenc}
+\RequirePackage{lmodern}
+\RequirePackage{microtype}
+\RequirePackage{graphicx}
+\RequirePackage{booktabs}
+\RequirePackage{array}
+\RequirePackage{ragged2e}
+\RequirePackage{tabularx}
+\RequirePackage{amsmath,amssymb}
+\RequirePackage{xcolor}
+\RequirePackage{hyperref}
+\RequirePackage{enumitem}
+\RequirePackage{listings}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{ifthen}
+\RequirePackage{iftex}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  urlcolor=blue!60!black,
+  citecolor=blue!60!black
+}
+
+\definecolor{ece334blue}{RGB}{11,87,208}
+\definecolor{ece334gray}{RGB}{244,244,244}
+\definecolor{ece334border}{RGB}{200,200,200}
+
+\lstdefinestyle{bashstyle}{
+  language=bash,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{ece334gray},
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{ece334border},
+  breaklines=true,
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true
+}
+
+\lstdefinestyle{pythonstyle}{
+  language=Python,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{ece334gray},
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{ece334border},
+  breaklines=true,
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true
+}
+
+\lstdefinelanguage{ngspice}{
+  morekeywords={.tran,.dc,.ac,.control,.endc,.end,.include,.lib,.meas,.save,.ic,.option,.subckt,.ends,.model,.param,.global},
+  sensitive=false,
+  morecomment=[l]{*},
+  morestring=[b]",
+}
+
+\lstdefinestyle{spiceStyle}{
+  language=ngspice,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{ece334gray},
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{ece334border},
+  breaklines=true,
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true
+}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{ece334gray},
+  frame=single,
+  framerule=0.4pt,
+  rulecolor=\color{ece334border},
+  breaklines=true,
+  showstringspaces=false,
+  columns=fullflexible,
+  keepspaces=true
+}
+
+\newtcolorbox{terminalbox}{
+  colback=blue!3,
+  colframe=ece334blue,
+  title={In the noVNC desktop terminal},
+  fonttitle=\bfseries,
+  breakable
+}
+
+\newtcolorbox{xschembox}{
+  colback=green!3,
+  colframe=green!50!black,
+  title={In XSchem},
+  fonttitle=\bfseries,
+  breakable
+}
+
+\newtcolorbox{magicbox}{
+  colback=orange!3,
+  colframe=orange!60!black,
+  title={In Magic},
+  fonttitle=\bfseries,
+  breakable
+}
+
+\newenvironment{deliverables}{%
+  \section*{Deliverables}%
+  \begin{itemize}[label=$\square$,leftmargin=1.5em]
+}{%
+  \end{itemize}
+}
+
+\newcommand{\labtitle}[2]{%
+  \title{ECE334 Lab #1: #2\\[0.4em]\large Digital Electronics --- SKY130 Open-Source Flow}
+  \author{ECE334 --- Digital Electronics}
+  \date{}
+  \maketitle
+}
+
+\newcommand{\labconventions}{%
+  \section*{Course conventions}
+  {\small
+  \begin{tabularx}{\textwidth}{@{}lX@{}}
+    \toprule
+    Setting & Value \\
+    \midrule
+    Process (PDK) & \texttt{sky130A} \\
+    Supply voltage & \textbf{1.8\,V} \\
+    Teaching channel length & \textbf{L = 0.5\,\textmu m} \\
+    NMOS / PMOS devices & \texttt{sky130\_fd\_pr\_\_nfet\_01v8} / \texttt{pfet\_01v8} \\
+    Unit inverter (Lab 3) & Wn = 1\,\textmu m, Wp = 3\,\textmu m @ L = 0.5\,\textmu m \\
+    \bottomrule
+  \end{tabularx}}
+}
+
+\newcommand{\labfigure}[3][0.85\linewidth]{%
+  % #1 = width, #2 = image path, #3 = caption
+  \begin{figure}[htbp]
+    \centering
+    \IfFileExists{#2}{%
+      \includegraphics[width=#1]{#2}%
+    }{%
+      \fbox{\parbox[c][2.2in][c]{#1}{\centering\small\textit{Figure placeholder}\\[0.3em]#2}}%
+    }%
+    \caption{#3}
+  \end{figure}
+}
+
+\newcommand{\labfile}[1]{\texttt{#1}}
+
+\endinput
