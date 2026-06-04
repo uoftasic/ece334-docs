@@ -66,3 +66,4 @@ nav:
       - Magic cheatsheet: reference/magic-cheatsheet.md
   - Maintainers:
       - Building the docs: maintainers/building.md
+      - Authoring interactive labs: maintainers/authoring-labs.md
