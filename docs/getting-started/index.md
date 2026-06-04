@@ -252,7 +252,6 @@ If you'd like to understand *why* the course is structured this way, these go de
 
 - [Lab 2 in depth](../labs/lab2/lvs-pex.md) — the complete layout → DRC → LVS → PEX flow
 - Lab 0 migration notes: [SUE → XSchem](../labs/lab0/sue-to-xschem.md) and [MAX → Magic](../labs/lab0/max-to-magic.md)
-- [Legacy handouts](../legacy/index.md) — the historical SUE/MAX materials, kept for reference
 
 Teaching assistants and IT staff setting up the environment should refer to the **`ece334-instructor`** repository (solutions, EDA-server provisioning, and infrastructure docs), and to [Building the docs](../maintainers/building.md) for the documentation toolchain.
 
