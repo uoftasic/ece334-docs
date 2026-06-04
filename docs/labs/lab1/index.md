@@ -11,6 +11,69 @@ the terminal; schematic drawing uses the GUI.
 
 > 📷 *Figure: Lab 1 overview — XSchem inverter schematic or gtkwave Vi/Vo* — screenshot pending (`images/01-lab1-overview.png`)
 
+## A note on scripting (read before P1)
+
+Part of this lab asks you to extract device parameters from simulation data using a few lines
+of **Python**. If you have never written a script, that is completely fine — this section is a
+gentle on-ramp, and you will not be thrown into the deep end.
+
+!!! note "Why bother scripting at all?"
+    A SPICE simulation does not hand you "the threshold voltage." It hands you a **table of
+    numbers** — hundreds of voltage/current pairs in a text file. Turning that table into a
+    single meaningful answer (a slope, an intercept, a fitted parameter) is work, and doing it
+    **by hand or in a spreadsheet is slow, error-prone, and impossible to reproduce**. A
+    five-line script does it in a way that is fast, exact, and — crucially — **re-runnable**:
+    change one transistor size, re-simulate, re-run the script, and your answer updates
+    instantly. Every working chip designer automates this kind of post-processing. The skill
+    is genuinely worth the small upfront effort, and it does not expire when the course ends.
+
+### Scripting primitives you'll actually use
+
+You only need a handful of ideas to do the analysis in this lab. Here they are, each in one
+breath, before you meet them in real code below.
+
+**1. Data is loaded as an *array*.** ngspice writes its results to a text file with columns
+(e.g. time, voltage, current). [NumPy](https://numpy.org/) reads the whole file into a 2-D
+table of numbers called an **array**:
+
+```python
+import numpy as np                 # the standard numerical library
+d = np.loadtxt('nmos_iv.txt')      # d is now a table: rows = sweep points, cols = columns
+```
+
+**2. Pick a column with `[:, k]`.** The comma separates *rows* from *columns*. A colon `:`
+means "all of them." So `d[:, 0]` is "all rows, column 0":
+
+```python
+vgs = d[:, 0]      # all rows of column 0  -> the gate voltage at each sweep point
+idd = d[:, 1]      # all rows of column 1  -> the drain current at each sweep point
+```
+
+**3. Math applies to a whole array at once.** You don't loop over points by hand. Writing
+`np.sqrt(idd)` takes the square root of *every* current value and gives you back an array of
+the same length. This "do it to the whole column" style is what makes the analysis short.
+
+**4. A *boolean mask* selects the rows you care about.** A comparison like `vgs > 1.0`
+produces an array of `True`/`False`, one per point. Combine masks with `&` ("and"). Putting a
+mask in the brackets keeps only the `True` rows — here, only the strong-inversion part of the
+sweep:
+
+```python
+sel = (vgs > 1.0) & (vgs < 1.7)    # True only where 1.0 V < VGS < 1.7 V
+vgs[sel]                           # just those gate-voltage points
+```
+
+**5. Fit a straight line with `polyfit`.** `np.polyfit(x, y, 1)` finds the best-fit line
+`y = m·x + b` through your points and returns the slope `m` and intercept `b`. From those two
+numbers you recover the physical parameters (the algebra is in the section below):
+
+```python
+m, b = np.polyfit(vgs[sel], sid[sel], 1)   # slope m, intercept b
+```
+
+That is the entire toolkit. Read those five ideas once; when you reach the extraction code,
+every line will already look familiar.
+
 ## Preparation
 
 !!! terminal "In the noVNC desktop terminal"
@@ -103,21 +166,28 @@ wrdata nmos_iv.txt id
 ### Fit $\sqrt{I_D}$ vs $V_{GS}$
 
 After running the deck, fit the strong-inversion region ($V_{GS} \in [1.0, 1.7]$ V) in Python
-or by hand. Example Python workflow:
+or by hand. Every line below uses one of the five primitives from
+[the scripting preamble](#scripting-primitives-youll-actually-use) — read it once and this
+should feel familiar rather than mysterious:
 
 ```python
 import numpy as np
-d = np.loadtxt('nmos_iv.txt')
-vgs, idd = d[:, 0], d[:, 1]
-sid = np.sqrt(np.clip(idd, 0, None))
-sel = (vgs > 1.0) & (vgs < 1.7)
-m, b = np.polyfit(vgs[sel], sid[sel], 1)
-Vt = -b / m
-WL = 10 / 2
-KP = 2 * m**2 / WL
+d = np.loadtxt('nmos_iv.txt')          # (1) load the table ngspice wrote
+vgs, idd = d[:, 0], d[:, 1]            # (2) pull out the VGS and ID columns
+sid = np.sqrt(np.clip(idd, 0, None))  # (3) sqrt(ID) for every point (clip avoids sqrt of <0)
+sel = (vgs > 1.0) & (vgs < 1.7)       # (4) mask: keep only the strong-inversion region
+m, b = np.polyfit(vgs[sel], sid[sel], 1)  # (5) best-fit line through those points
+Vt = -b / m                            # x-intercept of the line is Vt
+WL = 10 / 2                            # W/L of the extraction device (10 um / 2 um)
+KP = 2 * m**2 / WL                     # slope -> KP  (from the algebra above)
 print(f'Vtn = {Vt:.3f} V')
 print(f'KPn = {KP*1e6:.1f} uA/V^2')
 ```
+
+!!! tip "Run it the same way you ran ngspice"
+    Save the snippet as `extract.py` and run `python3 extract.py` from the same `spice/`
+    folder, *after* the ngspice deck has produced `nmos_iv.txt`. Change a device size, re-run
+    the deck, re-run the script — that re-runnability is exactly the point of scripting.
 
 **Typical result (yours will vary):** $V_{tn} \approx 0.45$ V, $K_{Pn} \approx 70\ \mu A/V^2$.
 Record all four numbers for P3 and Lab 3.
