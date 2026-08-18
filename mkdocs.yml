@@ -56,7 +56,6 @@ nav:
       - Lab 0 — XSchem & Magic intro: labs/lab0/index.md
       - Lab 1 — Basic SPICE: labs/lab1/index.md
       - Lab 2 — NAND layout, LVS, PEX: labs/lab2/index.md
-      - "Lab 2 deep dive: Layout/LVS/PEX": labs/lab2/lvs-pex.md
       - Lab 3 — Digital circuits: labs/lab3/index.md
       - Lab 4 — DFF & 6T SRAM: labs/lab4/index.md
   - Reference:
