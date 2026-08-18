@@ -105,12 +105,21 @@ Pin order on both device symbols is **D G S B**.
 |--------|-----|
 | Netlist | menubar **Netlist**, or `Shift-N` |
 | Simulate | menubar **Simulate** |
-| Fire a launcher (green arrow) | **Ctrl-click** it |
+| Fire a launcher (green arrow) | click it, then `Ctrl-H` |
 | Plot a net | select the wire, press `p` |
 | Annotate operating point | the **Annotate OP** button |
 
 Netlists and results land in `/foss/designs/.xschem/simulations`. In a notebook,
 `sim.raw("name.raw")` resolves against that directory.
+
+### Launchers fail silently
+
+A launcher fires only when the selection is exactly one object and the pointer
+did not move between button press and release. XSchem's documented Ctrl-click
+therefore misses most of the time — a 3-pixel drift loses it, and nothing is
+reported. Click the arrow to select it, then press `Ctrl-H`; that path
+tolerates a sloppy click. If it still does nothing, press `Escape` to drop any
+other selection and try again.
 
 ## Batch use
 
