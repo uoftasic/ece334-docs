@@ -28,6 +28,16 @@ Lab 3 sizing:
 
 ---
 
+## The tools
+
+| File | Purpose |
+|------|---------|
+| `xschem/aoi21_tb.sch` | AOI21 testbench. Build the gate inside the DUT. |
+| `xschem/dff_tb.sch` | Flip-flop testbench, wired for the four-panel plot. |
+| `lab3.ipynb` | Your report. Loads each result, measures it, and holds your answers. |
+| `spice/*.spice` | The same circuits as plain decks, if you prefer the command line. |
+| `common/xschem/` | The shared cells the flip-flop is built from: `inv`, `nand2`, `nor2`, `tgate`. |
+
 ## Preparation
 
 ### P1 — Unit inverter driving 0.3 pF
@@ -140,6 +150,13 @@ L2, at five times the load.
 Build your AOI21 in the DUT of `xschem/aoi21_tb.sch` with the sizes from P2,
 then drive it with each of the four input patterns and measure the edges.
 
+![AOI21 schematic](images/04-aoi21-schematic.png)
+*The reference gate. `MPA` carries the whole pull-up current on its own, so the
+parallel `MPB`/`MPC` pair hangs below it on `pmid`; `MNA` sits alone against the
+series `MNB`/`MNC` pair. Read the two networks against each other — one is the
+dual of the other, which is what keeps the output always driven and never
+driven both ways at once.*
+
 Getting the patterns right is most of the exercise:
 
 | Case | Hold | Switch | Path |
@@ -173,6 +190,23 @@ The reference decks are `spice/unit_inv.spice` and `spice/aoi21_cases.spice`.
 Build the flip-flop from the cells in `common/xschem`: four `tgate`, four
 `nor2`, and one `inv` for the clock. Sizes are in the conventions table above.
 
+![The transmission gate](images/06-tgate.png)
+*`tgate`. An NMOS and a PMOS in parallel, driven by opposite gate phases. Note
+that neither device has a fixed source: which terminal is the source depends on
+which side is higher, which is why the cell is wired by net name rather than
+drawn with a source pointing at a rail.*
+
+![The NOR gate](images/07-nor2.png)
+*`nor2`. Series PMOS above, parallel NMOS below — the mirror image of the NAND
+you drew in Lab 0. The series pair is doubled in width for the same reason it
+was there.*
+
+![The flip-flop](images/05-dff-schematic.png)
+*The assembled master–slave pair. `TG1` and `TG2` open on opposite clock
+phases, so exactly one of them is conducting at any time: the master is either
+listening to `data` or holding. The slave is the same circuit on the other
+phase.*
+
 Simulate with:
 
 ```
@@ -203,6 +237,9 @@ rising edge at 20 ns.
 ---
 
 ## Expected results
+
+Submit the executed `lab3.ipynb`. It must contain, for each section, your hand
+analysis, the measured value, and a written comparison.
 
 - [ ] **P1/L1** — analytic against simulated $t_r$ and $t_f$ for the unit inverter
 - [ ] **P2/L2** — AOI21 schematic; the four input patterns identified; worst- and

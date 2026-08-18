@@ -24,6 +24,19 @@ LVS can still be slow. You need all four.
 
 --8<-- "includes/conventions.md"
 
+## The tools
+
+| File | Purpose |
+|------|---------|
+| `magic/` | Where you draw the layout. Magic writes `nand2.mag` here. |
+| `xschem/nand2_lvs.sch` | Wrapper that instantiates `nand2.sym`, so XSchem emits a `.subckt` for netgen to compare against. |
+| `lab2.ipynb` | Your report. Captures the DRC count, the extracted netlist, the LVS verdict, and the delay comparison. |
+| `spice/nand2_compare.spice` | The L6 testbench. Runs against either extracted netlist by swapping one `.include`. |
+
+Lab 2 produces mostly tool output rather than waveforms, so the notebook
+captures that output rather than re-deriving it. Run its cells after you have
+finished in Magic.
+
 The cell is the Lab 1 NAND2: **Wn = 2 (series pair), Wp = 3 (parallel pair),
 L = 0.5**. Those are the legacy handout's $(W/L)_p = 24$, $(W/L)_n = 16$ ratios
 at this lab's channel length. Ports: `a`, `b`, `out`, `vdd`, `vss` — the same
@@ -180,8 +193,13 @@ Netgen compares the extracted layout against the schematic. Both sides need a
     nand2"*. Netlist a schematic that **instantiates** `nand2.sym` instead.
 
 ```bash
-./scripts/run_lvs.sh nand2.lvs.spice nand2_lvs.spice
+/foss/designs/scripts/run_lvs.sh nand2.lvs.spice xschem/nand2_lvs.sch
 ```
+
+The second argument is the *wrapper* schematic, not `nand2.sch`. The script
+netlists it, checks that a `.subckt nand2` actually came out, and only then
+calls netgen — so a missing subcircuit is reported as that, rather than as
+netgen's less obvious *"Cannot find cell"*.
 
 The result you want:
 
@@ -245,6 +263,8 @@ one. Compare this against your P3 prediction.
 ---
 
 ## Expected results
+
+Submit the executed `lab2.ipynb`, with the layout plot attached.
 
 - [ ] **L2** — layout plot of your NAND2
 - [ ] **L3** — `drc count` = 0
