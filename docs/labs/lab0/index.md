@@ -12,11 +12,21 @@ By the end you will have:
 
 1. drawn a CMOS inverter from individual transistors and simulated it;
 2. turned it into a reusable symbol, and built a 2-input NAND the same way;
-3. wired both into a pulse generator and seen what it does; and
-4. painted a transistor in Magic.
+3. wired both into a pulse generator and seen what it does;
+4. painted a transistor in Magic; and
+5. worked through `lab0.ipynb`, which is where you learn the notebook that
+   Labs 1 to 4 are reported in.
 
 Keep the [XSchem](../../reference/xschem-cheatsheet.md) and
 [Magic](../../reference/magic-cheatsheet.md) cheatsheets open in another tab.
+
+## The tools
+
+| File | Purpose |
+|------|---------|
+| `lab0.ipynb` | The notebook tutorial. Self-contained: it runs against a deck that ships with the lab, so it works before your schematic does. |
+| `spice/inv_demo.spice` | A CMOS inverter as a plain deck. Read it — every testbench in this course has the same five parts. |
+| `xschem/`, `magic/` | Empty. This is the lab where you fill them. |
 
 ## Course conventions
 
@@ -254,6 +264,29 @@ Save with `Ctrl-S`.
 
 ---
 
+## L3 — The notebook
+
+Labs 1 to 4 are reported through a Jupyter notebook, and none of them stop to
+explain it. This is where you learn it, with a demonstrator in the room.
+
+```bash
+. /foss/designs/common/.designinit
+cd /foss/designs/lab0_setup
+jlab
+```
+
+Open `lab0.ipynb` and work through it. It covers running a cell, why order
+matters, loading a simulation result, measuring it, plotting it, and the
+hand-analysis → measurement → written-answer shape every later section uses. It
+also makes you cause a few of the common errors on purpose, so you recognise
+them later.
+
+Finish with **Kernel → Restart Kernel and Run All Cells**. That habit is worth
+forming now: it is the only way to know your notebook runs top to bottom on
+someone else's machine, which is how it will be marked.
+
+---
+
 ## Expected results
 
 Nothing is submitted. Before Lab 1, confirm you can:
@@ -262,7 +295,8 @@ Nothing is submitted. Before Lab 1, confirm you can:
 - [ ] wire a schematic with no unconnected ports left;
 - [ ] make a symbol and instantiate it in another schematic;
 - [ ] run a simulation and plot a net;
-- [ ] paint geometry in Magic and reach `drc count` = 0.
+- [ ] paint geometry in Magic and reach `drc count` = 0; and
+- [ ] run `lab0.ipynb` end to end from a restarted kernel with no errors.
 
 ## Extra notes
 

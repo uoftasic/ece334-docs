@@ -41,8 +41,21 @@ menubar, in that order. Netlist writes `<name>.spice`; Simulate runs ngspice on
 it and writes the `.raw` file the schematic's `.control` block names.
 
 The green arrows inside each testbench do the same thing in one step, but they
-are **launchers**: they fire on **Ctrl-click**, not an ordinary click. If a
-click appears to do nothing, that is why.
+are **launchers**, and firing one takes two steps:
+
+1. **click the arrow once** — it turns highlighted, meaning it is selected;
+2. **press `Ctrl-H`**.
+
+!!! warning "Ctrl-clicking a launcher usually does nothing"
+    XSchem does have a Ctrl-click shortcut for this, and it only fires if the
+    pointer does not move at all between pressing and releasing the button.
+    Measured on this build, a 3-pixel drift is enough to lose it, which is more
+    than a hand on a mouse can avoid. It fails silently — no message, no
+    highlight. Use click-then-`Ctrl-H`, or the menubar.
+
+    A launcher also does nothing while anything *else* is selected, because it
+    acts only when the selection is exactly one object. Press `Escape` first if
+    you are not sure.
 
 | Launcher | Equivalent |
 |---|---|
