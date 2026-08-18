@@ -103,8 +103,9 @@ Pin order on both device symbols is **D G S B**.
 
 | Action | How |
 |--------|-----|
-| Netlist | `Shift-N` |
-| Netlist and run | `h`, or the **Netlist & Simulate** button |
+| Netlist | menubar **Netlist**, or `Shift-N` |
+| Simulate | menubar **Simulate** |
+| Fire a launcher (green arrow) | **Ctrl-click** it |
 | Plot a net | select the wire, press `p` |
 | Annotate operating point | the **Annotate OP** button |
 

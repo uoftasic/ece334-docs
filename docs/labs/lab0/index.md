@@ -150,7 +150,7 @@ with a `pulse` source.
 the NAND's other pin. Supplies connect by name through `vdd` and `vss` labels.*
 
 Add a `code_shown` block with the model include and a `.control` block, then
-press **Netlist & Simulate**:
+click **Netlist** then **Simulate** in the menubar:
 
 ```
 .control

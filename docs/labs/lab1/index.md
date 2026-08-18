@@ -34,12 +34,21 @@ cd /foss/designs/lab1_spice
 xschem xschem/rc_tb.sch &
 ```
 
-Each testbench carries three buttons:
+### Running a simulation
 
-- **Netlist & Simulate** — saves, netlists, and runs ngspice. Writes a named
-  `.raw` file.
-- **Annotate OP** — overlays DC operating-point voltages on the schematic.
-- **Run analysis notebook** — executes `lab1.ipynb`.
+Use the **Netlist** and **Simulate** buttons at the right-hand end of the
+menubar, in that order. Netlist writes `<name>.spice`; Simulate runs ngspice on
+it and writes the `.raw` file the schematic's `.control` block names.
+
+The green arrows inside each testbench do the same thing in one step, but they
+are **launchers**: they fire on **Ctrl-click**, not an ordinary click. If a
+click appears to do nothing, that is why.
+
+| Launcher | Equivalent |
+|---|---|
+| Netlist & Simulate | menubar **Netlist**, then **Simulate** |
+| Annotate OP | **Simulation → Annotate OP** |
+| Run analysis notebook | run `lab1.ipynb` in JupyterLab |
 
 The notebook finds results by filename through `sim.raw("rc_tb.raw")`, so it
 does not matter which directory you started XSchem from.
@@ -145,7 +154,8 @@ terms of $R_{eq}$ and the capacitance at each chain node.
 
 ### L1 — RC step response
 
-Open `xschem/rc_tb.sch` and press **Netlist & Simulate**. It writes `rc_tb.raw`.
+Open `xschem/rc_tb.sch`, then click **Netlist** and **Simulate** in the
+menubar. It writes `rc_tb.raw`.
 Run section P1 of `lab1.ipynb`:
 
 ```python
@@ -189,7 +199,7 @@ are tied at `s`.*
     stops with *"could not find a valid modelname"*. This is the most common
     first-simulation failure in this course.
 
-Press **Netlist & Simulate**, then run section P2 of the notebook:
+Click **Netlist** then **Simulate**, and run section P2 of the notebook:
 
 ```python
 d = sim.raw("diode_nmos.raw")
@@ -225,7 +235,7 @@ Selecting a device and pressing `q` opens its properties:
 *`W=3 L=0.5` on the PMOS. `spiceprefix=X` and the diffusion geometry are filled
 in by the symbol — you only set W and L.*
 
-Press **Netlist & Simulate**. It writes `inv_tb_vtc.raw` (DC sweep) and
+Click **Netlist** then **Simulate**. It writes `inv_tb_vtc.raw` (DC sweep) and
 `inv_tb_tran.raw` (transient).
 
 **Transfer characteristic.** Run notebook section P3a:
@@ -257,7 +267,7 @@ Build the circuit in the DUT of `xschem/pulsegen_tb.sch` from the `inv` and
 `nand2` cells in `common/xschem`. Press `Shift-I` to open the symbol browser.
 Wire the last chain node to the `n3` port.
 
-Press **Netlist & Simulate**, then run notebook section P4:
+Click **Netlist** then **Simulate**, and run notebook section P4:
 
 ![Pulse generator waveforms](images/09-pulsegen-waves.png)
 *`in` rises; `n3` is still high for the length of the chain delay; both NAND
@@ -336,7 +346,7 @@ Same cause seen from ngspice's side: the nets named in the `.control` block do
 not exist because the DUT is empty.
 
 **The notebook cannot find a `.raw` file.**
-Press **Netlist & Simulate** before running the cell. Results are written to
+Netlist and simulate the testbench before running the cell. Results go to
 `/foss/designs/.xschem/simulations`, and `sim.raw()` looks there and in the
 current directory.
 
