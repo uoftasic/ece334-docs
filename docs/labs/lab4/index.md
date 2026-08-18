@@ -150,10 +150,31 @@ maximum clock frequency follows from the max-delay constraint:
 $$f_{max} = \frac{1}{t_{PCQ} + t_{logic} + t_{setup}}
 = \frac{1}{1.134 + 0.621 + 0.230\ \mathrm{ns}} = 504\ \mathrm{MHz}$$
 
-Then find it experimentally: reduce `TCLK` until DFF2 stops tracking DFF1, and
-compare against your calculation. Expect the simulated limit to be close to but
-not exactly the calculated one, and say which of the three terms you trust
-least.
+Then find it experimentally: reduce `TCLK` until DFF2 stops capturing, and
+compare against your calculation.
+
+!!! warning "Measure whether Q2 still *changes*, not whether it agrees with Q1"
+    Q2 reproduces Q1 delayed by a whole clock cycle, so comparing the two at
+    the same instant only measures that lag — it will call your slowest clock a
+    failure and your fastest one a success. What actually stops when the path
+    misses timing is that Q2 stops changing at all. The deck reports
+    `q2_swing` for exactly this reason.
+
+The reference build still captures at `TCLK` = 4 ns and fails at 3 ns, so the
+simulated limit is somewhere between **250 and 333 MHz** — around half the
+504 MHz the constraint predicts.
+
+That gap is the interesting part of this section, and it is not an error in
+either number. Both were measured under conditions the path does not meet:
+
+- $t_{setup}$ came from a flip-flop whose data input was driven by an ideal
+  source with a sharp edge. In the chain, D2 arrives from four inverters with a
+  real, slow edge, and a slow edge needs more setup time than a sharp one.
+- $t_{PCQ}$ was measured at one particular load.
+
+Say which of the three terms you trust least, and why. A prediction that is
+optimistic by a factor of two, for a reason you can name, is a better answer
+than one that happens to agree.
 
 ### L4 — Build the SRAM cell
 
