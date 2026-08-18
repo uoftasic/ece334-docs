@@ -43,8 +43,13 @@ it and writes the `.raw` file the schematic's `.control` block names.
 The green arrows inside each testbench do the same thing in one step, but they
 are **launchers**, and firing one takes two steps:
 
-1. **click the arrow once** — it turns highlighted, meaning it is selected;
+1. **click the arrow once** — a box appears around its label, meaning it is
+   selected;
 2. **press `Ctrl-H`**.
+
+![A selected launcher](images/11-launcher-selected.png)
+*`Netlist & Simulate` has been clicked and is selected — note the box around
+the label, which the other two do not have. `Ctrl-H` now fires it.*
 
 !!! warning "Ctrl-clicking a launcher usually does nothing"
     XSchem does have a Ctrl-click shortcut for this, and it only fires if the
