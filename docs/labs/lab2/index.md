@@ -197,9 +197,16 @@ Netgen compares the extracted layout against the schematic. Both sides need a
 ```
 
 The second argument is the *wrapper* schematic, not `nand2.sch`. The script
-netlists it, checks that a `.subckt nand2` actually came out, and only then
-calls netgen — so a missing subcircuit is reported as that, rather than as
+netlists it for you, checks that a `.subckt nand2` actually came out, and only
+then calls netgen — so a missing subcircuit is reported as that, rather than as
 netgen's less obvious *"Cannot find cell"*.
+
+It also accepts two netlists, if you would rather netlist the wrapper yourself:
+
+```bash
+xschem -n -s -q -x -o . xschem/nand2_lvs.sch
+/foss/designs/scripts/run_lvs.sh nand2.lvs.spice nand2_lvs.spice
+```
 
 The result you want:
 
