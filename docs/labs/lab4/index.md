@@ -166,10 +166,6 @@ the bit lines when the word line is high. `a` and `a_b` are brought out as
 ports so the testbench can set the initial state and plot them; a cell in a
 real array would not expose them.*
 
-![The testbench](images/07-sram-testbench.png)
-*The testbench: your cell, the provided periphery, the four stimulus sources,
-and 1 pF on each bit line.*
-
 ![The periphery](images/06-sram-periphery.png)
 *Provided, already built. `pre` high drives both bit lines to $V_{DD}$ through
 `P3`/`P4`. With `write` high, one of the two series pairs pulls its bit line
