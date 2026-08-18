@@ -251,7 +251,6 @@ A few habits save time:
 
 ## Reference
 
-- [Lab 2 in depth](../labs/lab2/lvs-pex.md) — the layout → DRC → LVS → PEX flow
 - [XSchem cheatsheet](../reference/xschem-cheatsheet.md) and [Magic cheatsheet](../reference/magic-cheatsheet.md)
 
 Teaching assistants and IT staff setting up the environment should refer to the **`ece334-instructor`** repository, and to [Building the docs](../maintainers/building.md) for the documentation toolchain.
