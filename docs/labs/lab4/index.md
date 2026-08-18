@@ -27,6 +27,23 @@ Textbook section 12.2.1, *Memory cell read/write operation*.
 Bit-line capacitance is 1 pF on each side. Ignore the body effect in hand
 analysis.
 
+## The tools
+
+| File | Purpose |
+|------|---------|
+| `xschem/sram6t_tb.sch` | SRAM testbench: stimulus, bit-line capacitance, and the provided periphery. Build your cell inside the DUT. |
+| `xschem/sram_periph.sch` | The precharge devices and write drivers, already built. Select it and press `e` to look inside. |
+| `xschem/dff_wrap.sch` | Wrapper that makes XSchem emit `.subckt dff` for the flip-flop decks to include. |
+| `lab4.ipynb` | Your report. Sweeps the setup time, measures $t_{PCQ}$ and $f_{max}$, and analyses all three SRAM cases. |
+| `spice/dff_char.spice` | Flip-flop characterization deck (L1, L2). |
+| `spice/dff_chain.spice` | Two flip-flops and four inverters (L3). |
+| `spice/sram6t*.spice` | The SRAM cell, nominal and with each stability condition broken. |
+
+The design exercise here is the six transistors of the cell. The periphery is
+provided so that a wiring mistake in the write drivers cannot be mistaken for a
+sizing mistake in the cell — but read it, because L5 asks you to explain what
+it does.
+
 ---
 
 ## Preparation
@@ -140,7 +157,24 @@ least.
 
 ### L4 — Build the SRAM cell
 
-Build the cell and its periphery with your P1 sizes.
+Build the cell in the DUT of `xschem/sram6t_tb.sch` with your P1 sizes.
+
+![The 6T cell](images/05-sram6t-cell.png)
+*The reference cell. Two inverters, each driving the other's input — that loop
+is the entire storage mechanism. The access devices join the internal nodes to
+the bit lines when the word line is high. `a` and `a_b` are brought out as
+ports so the testbench can set the initial state and plot them; a cell in a
+real array would not expose them.*
+
+![The testbench](images/07-sram-testbench.png)
+*The testbench: your cell, the provided periphery, the four stimulus sources,
+and 1 pF on each bit line.*
+
+![The periphery](images/06-sram-periphery.png)
+*Provided, already built. `pre` high drives both bit lines to $V_{DD}$ through
+`P3`/`P4`. With `write` high, one of the two series pairs pulls its bit line
+down depending on `data` — only one side at a time, which is what makes the
+write directional.*
 
 !!! warning "The cell has two stable states, so tell the simulator which one"
     Without an initial condition the DC solution is arbitrary, and a write has
@@ -210,6 +244,9 @@ ngspice -b spice/sram6t_write_fail.spice
 ---
 
 ## Expected results
+
+Submit the executed `lab4.ipynb`. It must contain, for each section, your hand
+analysis, the measured value, and a written comparison.
 
 - [ ] **L1** — setup time, with the bracketing values that establish it
 - [ ] **L2** — $t_{PCQ}$
