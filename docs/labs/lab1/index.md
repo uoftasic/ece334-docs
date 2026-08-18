@@ -243,9 +243,13 @@ change to move $V_M$ to mid-rail, and what that costs.
 *$t_r = 2619$ ps, $t_f = 1606$ ps, $t_{pd} = 885$ ps with $C_L = 0.2$ pF.*
 
 Substitute your extracted $K_P$ and $V_t$ into the P3 expressions and compare.
-Expect the hand estimate to be optimistic. Account for the gap: velocity
-saturation makes the real device weaker at high $V_{GS}$ than the square law
-predicts, and $R_{eq}$ ignores the output-node diffusion capacitance.
+The reference build gets $t_r = 2801$ ps and $t_f = 1665$ ps by hand against
+2619 ps and 1606 ps simulated — within 7 %, and slightly conservative.
+
+The agreement is that good because $K_P$ came from a real device rather than
+from a datasheet, so the extraction already absorbed most of the short-channel
+behaviour. Say what would happen to the agreement if you fitted $K_P$ over
+0.5–1.0 V instead, and why.
 
 ### L4 — Pulse generator
 
@@ -263,13 +267,25 @@ Measure the pulse width between the 50 % points. The reference build gives
 **598.4 ps**. Compare with your P4 prediction.
 
 **Design task.** Add a capacitor at `n3` and size it so the pulse width is
-**1.5 ns**. Predict the value first from your measured $R_{eq}$ — the extra
-delay a load $C$ adds to one stage is $\approx 0.69\,R_{eq}C$ — then confirm by
-simulation. State the value you predicted, the value you used, and the width you
-measured.
+**1.5 ns**. Work in three steps:
 
-Sizing by trial and error and reporting only the final number is not sufficient;
-the prediction is the exercise.
+1. **Estimate.** Only the falling edge of `n3` closes the pulse, and the third
+   inverter's NMOS drives that edge, so the extra delay is
+   $\approx 0.69\,R_{eq,n}C$. Compute the capacitance this predicts.
+2. **Calibrate.** That estimate comes out about three times too large. It
+   predicts roughly 2.6 ps of extra width per fF, while the circuit delivers
+   about 7.1 ps/fF, so far less capacitance is needed than the model claims.
+   $R_{eq}$ is the resistance at full gate overdrive; the real device spends
+   much of the transition with less drive and out of saturation. Simulate at two
+   capacitances, measure both widths, and interpolate for 1.5 ns.
+3. **Confirm.** Use the interpolated value and check the width.
+
+The reference build needs **≈ 128 fF** and measures a sensitivity of about
+7.1 ps/fF: 0 fF → 598 ps, 40 fF → 905 ps, 80 fF → 1184 ps, 120 fF → 1450 ps.
+
+Report all three numbers — the estimate, the interpolated value, and the
+measured width — and say why step 1 was off. Trial and error with only a final
+number is not sufficient; explaining the gap is the exercise.
 
 ---
 
@@ -311,9 +327,13 @@ XSchem cannot find a symbol. Re-run `. /foss/designs/common/.designinit`, which
 reinstalls the course configuration at `~/.xschem/xschemrc`, then reopen the
 schematic.
 
+**`verify_lab.sh` says "empty subcircuit(s) … the DUT has not been built yet".**
+The testbench is fine; the DUT behind it is still the empty stub. Double-click
+the DUT and build the circuit inside it.
+
 **`write` fails with "no writable vector found".**
-The DUT is still empty, so the nets named in the `.control` block do not exist.
-Build the circuit inside the DUT first.
+Same cause seen from ngspice's side: the nets named in the `.control` block do
+not exist because the DUT is empty.
 
 **The notebook cannot find a `.raw` file.**
 Press **Netlist & Simulate** before running the cell. Results are written to
