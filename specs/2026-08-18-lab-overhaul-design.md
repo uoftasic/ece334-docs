@@ -161,3 +161,78 @@ through `ece334lib` so they are legible and reproducible.
 | Lab 2 sizing at $L = 0.5\,\mu$m may not be DRC-clean at the legacy ratios | Ratios are the requirement; absolute widths are free. Adjust widths until DRC and LVS pass, then record the final numbers in `conventions.md`. |
 | Notebook outputs bloat the repo | Notebooks are committed with outputs cleared. The docs embed a rendered snapshot instead. |
 | Screenshots drift as tools update | Filenames are stable and numbered; capture is scripted so figures can be regenerated. |
+
+---
+
+## Appendix A — Verified measurements (Labs 0–1)
+
+Produced by `instructors/measure_lab1.py` from the reference solutions, in the
+`hpretl/iic-osic-tools:2026.04` container. The manual quotes these numbers and
+must not disagree with them.
+
+### P1 — RC divider, R1 = 1 kΩ, R2 = 2 kΩ, C1 = 0.7 pF, 1.8 V step
+
+| Quantity | Hand | Simulated | Error |
+|---|---|---|---|
+| Final value | 1.200 V | 1.198 V | −0.2 % |
+| $t_r$ (10–90 %) | 1025.4 ps | 1034.5 ps | +0.9 % |
+| $\tau = t_r/\ln 9$ | 466.7 ps | 470.8 ps | +0.9 % |
+
+Read $\tau$ from the 10–90 % time, not the 63.2 % crossing: the 0.2 ns input
+ramp leaves the step origin ambiguous and biases the 63.2 % reading by ~16 %.
+
+### P2 — Diode-connected NMOS, W = 10, L = 2, fit over 1.0–1.7 V
+
+| Quantity | Value |
+|---|---|
+| $V_{tn}$ | 0.462 V |
+| $K_{Pn}$ | 177.8 µA/V² |
+
+### P3 — CMOS inverter, Wn = 1, Wp = 3, L = 0.5, $C_L$ = 0.2 pF
+
+| Quantity | Value |
+|---|---|
+| $V_M$ | 0.739 V |
+| $V_{IL}$ / $V_{IH}$ | 0.692 V / 0.782 V |
+| $V_{OL}$ / $V_{OH}$ | 0.037 V / 1.764 V |
+| $NM_H$ / $NM_L$ | 0.982 V / 0.655 V |
+| $t_{pd}$ (50–50 %) | 885.3 ps |
+| $t_r$ / $t_f$ (10–90 %) | 2619.3 ps / 1605.6 ps |
+
+$V_M$ sits below mid-rail because $W_p/W_n = 3$ does not fully offset
+$\mu_n/\mu_p$ in this process. The resulting asymmetry in $NM_H$ vs $NM_L$ is
+worth a discussion question rather than a correction.
+
+### P4 — Pulse generator (three inverters + NAND2)
+
+| Quantity | Value |
+|---|---|
+| Pulse width, unloaded | 598.4 ps |
+| Load on `n3` for 1.5 ns | ≈ 128 fF |
+
+Measured sensitivity ≈ 7.1 ps/fF: 0 fF → 598 ps, 40 fF → 905 ps, 80 fF →
+1184 ps, 120 fF → 1450 ps, 130 fF → 1515 ps.
+
+The gate-level build in Lab 0 and the transistor-level build in Lab 1 both
+measure 598.4 ps, so the two labs describe the same circuit.
+
+## Appendix B — Defects found and fixed while verifying
+
+1. `.designinit` exported `XSCHEMRC`, which XSchem never reads. The course
+   configuration was never loaded; every local symbol netlisted as
+   `IS MISSING` and Lab 1's inverter deck contained no transistors.
+2. `common/xschemrc` built `XSCHEM_LIBRARY_PATH` with `append` calls missing
+   the `:` separator, concatenating all paths into one unusable string.
+3. `SPICE_USERINIT_DIR` pointed at the IHP SG13G2 PDK, whose `.spiceinit`
+   preloads OSDI models from `$PDK_ROOT/$PDK/...`. With `PDK=sky130A` that path
+   does not exist, so every simulation emitted eight load errors. SKY130 ships
+   no OSDI and needs none; the maintainer notes had recorded this as "missing
+   model libraries", which it is not.
+4. `spice/pulsegen.spice` omitted the diffusion geometry the XSchem symbols
+   generate, so the terminal and schematic routes disagreed by 25 %.
+5. XSchem's batch exit status is 10 even on success for a schematic carrying a
+   multi-command `.control` block; the generated deck is the only reliable
+   oracle.
+6. A symbol's schematic resolves relative to the symbol's own directory before
+   `XSCHEM_LIBRARY_PATH`, so instructor solutions cannot be applied by path
+   overlay. `verify_solutions.sh` uses a scratch copy instead.
