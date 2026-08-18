@@ -1,4 +1,4 @@
-.PHONY: site serve pdf notebooks verify prose
+.PHONY: site serve pdf notebooks notebook-check verify prose
 
 site:
 	mkdocs build --strict
@@ -20,9 +20,17 @@ notebooks:
 	  jupyter nbconvert --to markdown --output "$$lab" --output-dir "$$out" "$$nb"; \
 	done
 
-# Strict build plus the two checks it does not make: that every referenced image
-# exists, and that the prose has not drifted back toward the old register.
-verify: site prose
+# The notebooks live in the labs repo, but they are part of the deliverable the
+# manual points students at, so verify them here too.
+notebook-check:
+	@if [ -f "$(LABS_DIR)/instructors/check_notebooks.py" ]; then \
+	  python3 "$(LABS_DIR)/instructors/check_notebooks.py"; \
+	else echo "labs repo not at $(LABS_DIR); skipping notebook check"; fi
+
+# Strict build plus the checks it does not make: that every referenced image
+# exists, that the notebooks parse and ship unexecuted, and that the prose has
+# not drifted back toward the old register.
+verify: site prose notebook-check
 	@missing=0; \
 	for f in $$(grep -rhoE '!\[[^]]*\]\([^)]+\)' docs --include='*.md' \
 	            | sed -E 's/.*\((.*)\)/\1/' | grep -vE '^https?://' | grep -v '<' | sort -u); do \
