@@ -236,3 +236,85 @@ measure 598.4 ps, so the two labs describe the same circuit.
 6. A symbol's schematic resolves relative to the symbol's own directory before
    `XSCHEM_LIBRARY_PATH`, so instructor solutions cannot be applied by path
    overlay. `verify_solutions.sh` uses a scratch copy instead.
+
+---
+
+## Appendix C — Verified measurements (Labs 2–4)
+
+### Lab 2 — NAND2 layout
+
+Sized `Wn = 2`, `Wp = 3`, `L = 0.5`, matching `common/xschem/nand2.sch`. That is
+the legacy 24:16 ratio at this lab's channel length.
+
+- DRC: **0 errors**.
+- Extraction: 4 devices, 6 nets, `.subckt nand2 a b out vdd vss`.
+- LVS against the Lab 1 schematic: **Circuits match uniquely.**
+- PEX at `cthresh 0`: 14 coupling capacitances.
+
+Pre- versus post-PEX, $t_{pHL}$:
+
+| $C_L$ | ideal | extracted | change |
+|---|---|---|---|
+| 0 | 100.0 ps | 105.8 ps | +5.8 % |
+| 1 fF | 104.0 ps | 109.8 ps | +5.6 % |
+| 5 fF | 120.0 ps | 125.7 ps | +4.8 % |
+| 20 fF | 177.1 ps | 182.7 ps | +3.2 % |
+| 100 fF | 467.8 ps | 473.5 ps | +1.2 % |
+
+The parasitics add a roughly fixed 6 ps.
+
+### Lab 3
+
+Unit inverter, $C_L$ = 0.3 pF: $t_r$ 3906 ps, $t_f$ 2397 ps, $t_{pHL}$ 1295 ps,
+$t_{pLH}$ 2143 ps.
+
+AOI21 at $C_L$ = 1.5 pF, sized Na 5 / Nb Nc 10 / Pa Pb Pc 30:
+
+| Case | $t_f$ | $t_r$ |
+|---|---|---|
+| Worst | 2078 ps | 4150 ps |
+| Best | 1092 ps | 3231 ps |
+
+Within 15 % of the unit inverter target: rise 6 % slow, fall 13 % fast.
+
+Flip-flop: verified functionally against the legacy stimulus. Capture on the
+rising edges at 20, 40 and 140 ns; asynchronous set at 55 ns; reset at 175 ns.
+
+### Lab 4
+
+| Quantity | Value |
+|---|---|
+| $t_{setup}$ | ≈ 230 ps (captures at 240 ps, fails at 220 ps) |
+| $t_{PCQ}$ | 1.134 ns |
+| $t_{logic}$, four unit inverters | 621 ps rising, 641 ps falling |
+| $f_{max}$ | 504 MHz |
+
+6T SRAM, $W_P$ 0.5 / access 0.7 / driver 2.0, $C_{bit}$ = 1 pF:
+
+| Case | Result |
+|---|---|
+| Nominal | writes 1.8 V, read time 1.45 ns, read disturb 144 mV |
+| Read stability violated (driver 0.6) | disturb 351 mV, past the 300 mV limit |
+| Write stability violated (load 6.0, access 0.36) | write does not take; A stays 0.075 V |
+
+Breaking write stability needs **both** devices moved. Shrinking the access
+device alone, or growing the load alone, still writes: a PMOS is about three
+times weaker than an NMOS of the same width, so the 1.2× ratio carries margin.
+
+## Appendix D — Further defects found while verifying Labs 2–4
+
+7. Magic's `load` reads an existing cell from disk, so a build script that
+   paints on top of it reports DRC errors belonging to the previous run. Clear
+   the cell first.
+8. Contacts painted with no surrounding `li` fail `li.5` everywhere. Paint `li`
+   over a rectangle 0.1 µm larger than each contact.
+9. Netlisting a cell's own schematic emits its devices at the top level with no
+   `.subckt`, so neither netgen nor `.include` can use it. Netlist a wrapper
+   that instantiates the symbol.
+10. Rotating a device symbol in XSchem moves its pins; every name-based
+    connection to it silently detaches.
+11. A `lab_pin` and a `gnd` on the same wire conflict. XSchem keeps the
+    `lab_pin` name and the ground connection is lost — this left a PMOS gate
+    floating and the device passing picoamps.
+12. `.meas ... TARG` searches from the start of the simulation, not from the
+    trigger, so it can return a negative delay. Select the crossing by index.
