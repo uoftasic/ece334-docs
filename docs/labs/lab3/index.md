@@ -1,108 +1,247 @@
-# ECE334 Lab 3: Digital Circuit Simulations
+# Lab 3 — Digital circuit simulations
 
-*Digital Electronics — SKY130 Open-Source Flow*
+*ECE334 — Digital Electronics — SKY130 open-source flow*
 
-**1.8 V** supply; unit inverter **Wn=1u Wp=3u L=0.5u**; use your Lab 1 extracted
-$K_P$ and $V_t$ values.
+## Objective
 
-> 📷 *Figure: four-panel DFF waveforms — CL, SETQ, DATA, Q* — screenshot pending (`images/01-dff-panels.png`)
+Size gates so they meet a timing target, and verify a sequential circuit.
+
+Three circuits, in increasing order of difficulty: a unit inverter you
+characterise, a complex gate you size yourself from that characterisation, and
+a flip-flop you assemble from cells and verify functionally.
+
+## Course conventions
+
+--8<-- "includes/conventions.md"
+
+Use your **own** $K_P$ and $V_t$ from Lab 1 L2 throughout. The numbers quoted
+here come from the reference extraction and yours will differ.
+
+Lab 3 sizing:
+
+| Cell | Sizing |
+|---|---|
+| Unit inverter | Wn = 1, Wp = 3 |
+| AOI21 | see P2 |
+| Transmission gates, clock inverter | Wn = 3, Wp = 9 |
+| NOR gates in the flip-flop | Wn = 3, Wp = 18 (series pair doubled) |
+
+---
 
 ## Preparation
 
-!!! terminal "In the noVNC desktop terminal"
-    ```bash
-    . /foss/designs/common/.designinit
-    cd /foss/designs/lab3_digital
-    ```
+### P1 — Unit inverter driving 0.3 pF
 
-## P1 / L1 — Unit inverter ($C_L = 0.3$ pF)
-
-### Hand estimate (equivalent resistance model)
-
-Using **your** Lab 1 extracted parameters, compute:
+Model each conducting device as $R_{eq}$, as in Lab 1 P3:
 
 $$
-\begin{aligned}
-  R_{\mathrm{eq},n} &= \frac{V_{DD}}{K_{Pn} \cdot (W/L)_n \cdot (V_{DD} - V_{tn})} \\
-  R_{\mathrm{eq},p} &= \frac{V_{DD}}{K_{Pp} \cdot (W/L)_p \cdot (V_{DD} - V_{tp})} \\
-  t_{\mathrm{fall}} &\approx 2.2 \cdot R_{\mathrm{eq},n} \cdot C_L \\
-  t_{\mathrm{rise}} &\approx 2.2 \cdot R_{\mathrm{eq},p} \cdot C_L
-\end{aligned}
+R_{eq} = \frac{V_{DD}}{K_P \frac{W}{L}(V_{DD}-|V_t|)},
+\qquad
+t_f \approx 2.2\,R_{eq,n}C_L,
+\qquad
+t_r \approx 2.2\,R_{eq,p}C_L
 $$
 
-With $(W/L)_n = 2$, $(W/L)_p = 6$, $C_L = 0.3$ pF, and example values
-$V_{tn}=0.45$ V, $V_{tp}=0.50$ V, $K_{Pn}=70\ \mu A/V^2$, $K_{Pp}=23\ \mu A/V^2$:
+With $W_n = 1$, $W_p = 3$, $L = 0.5$ and $C_L = 0.3$ pF, compute $t_r$ and
+$t_f$ from your own extracted parameters.
 
-```python
-VDD = 1.8
-Vtn, Vtp = 0.45, 0.50   # replace with your extraction
-KPn, KPp = 70e-6, 23e-6
-WLn, WLp = 2, 6
-CL = 0.3e-12
-Req_n = VDD / (KPn * WLn * (VDD - Vtn))
-Req_p = VDD / (KPp * WLp * (VDD - Vtp))
-t_fall = 2.2 * Req_n * CL * 1e9
-t_rise = 2.2 * Req_p * CL * 1e9
-print(f'Req_n={Req_n/1e3:.1f} kOhm  t_fall~{t_fall:.2f} ns')
-print(f'Req_p={Req_p/1e3:.1f} kOhm  t_rise~{t_rise:.2f} ns')
+### P2 — A complex gate
+
+Draw the CMOS gate for
+
+$$Y = \overline{A + B\cdot C}$$
+
+The pull-down network conducts when $A + BC$ is true: one NMOS for $A$, in
+**parallel** with a **series** pair for $B$ and $C$. The pull-up network is the
+dual: one PMOS for $A$ in **series** with a **parallel** pair for $B$ and $C$.
+
+**(a)** Identify the input conditions that give the worst-case and the best-case
+rise and fall times. For each of the four, say which devices are conducting.
+
+**(b)** Size the transistors so that in the **worst case** the gate matches the
+unit inverter's edge rates from P1 while driving **1.5 pF** — five times the
+load.
+
+Two rules do the work. Devices in series each need their width multiplied by the
+number in the path, because $n$ equal devices in series behave like one device
+of $1/n$ the width. And driving $5\times$ the load in the same time needs
+$5\times$ the width.
+
+Starting from the unit inverter, this gives:
+
+| Device | Width |
+|---|---|
+| NMOS $a$ (alone in its path) | 5 |
+| NMOS $b$, $c$ (series pair) | 10 each |
+| PMOS $a$ (in series with one of $b$, $c$) | 30 |
+| PMOS $b$, $c$ (parallel, but each in series with $a$) | 30 each |
+
+Derive these yourself before comparing.
+
+**(c)** Estimate the worst-case rise and fall times with the $R_{eq}$ model,
+neglecting diffusion capacitance, and compare with the unit inverter of P1.
+
+**(d)** Estimate the best-case rise and fall times.
+
+### P3 — The flip-flop
+
+![The flip-flop's four panels](images/03-dff-panels.png)
+*What the finished circuit does. CL and $\overline{CL}$; SETQ and RESETQ; DATA;
+Q and $\overline{Q}$.*
+
+The flip-flop is a master-slave pair. Each latch is two NOR gates in a loop that
+a transmission gate closes when the input gate is open:
+
+```
+master   TG1 (CL_b) : data -> m1
+         NOR_A (m1, SETQ)      -> m2
+         NOR_B (m2, RESETQ)    -> m3
+         TG2 (CL)   : m3 -> m1        hold while the clock is high
+slave    TG3 (CL)   : m3 -> s1
+         NOR_C (s1, SETQ)      -> Q_b
+         NOR_D (Q_b, RESETQ)   -> Q
+         TG4 (CL_b) : Q  -> s1        hold while the clock is low
 ```
 
-### Simulate the unit inverter
+Write the truth table. Cover, at minimum: what Q does on a rising clock edge,
+what it does between edges, and what SETQ and RESETQ do irrespective of the
+clock. Explain why the two transmission gates in each latch are driven by
+opposite clock phases.
 
-Reference deck: `spice/unit_inv_tb.spice`
+---
 
-```spice
-* Lab 3 P1 -- unit inverter, CL = 0.3 pF
-.lib $PDK_ROOT/sky130A/libs.tech/ngspice/sky130.lib.spice tt
-Vdd vdd 0 1.8
-Vgnd vss 0 0
-Vi vi 0 PULSE(0 1.8 0 0.2n 0.2n 3n 6n)
-Xn vo vi vss vss sky130_fd_pr__nfet_01v8 W=1u L=0.5u
-Xp vo vi vdd vdd sky130_fd_pr__pfet_01v8 W=3u L=0.5u
-Cload vo vss 0.3p
-.tran 1p 20n
-.control
-run
-wrdata unit_inv.txt v(vi) v(vo)
-.endc
-.end
+## Lab Work
+
+### L1 — Unit inverter
+
+Simulate the unit inverter with $C_L = 0.3$ pF.
+
+```bash
+. /foss/designs/common/.designinit
+cd /foss/designs/lab3_digital
+ngspice -b spice/unit_inv.spice
 ```
 
-!!! terminal "In the noVNC desktop terminal"
-    ```bash
-    cd spice
-    ngspice -b unit_inv_tb.spice
-    ```
+![Unit inverter transient](images/01-unit-inv.png)
+*Reference build: $t_r$ = 3906 ps, $t_f$ = 2397 ps at $C_L$ = 0.3 pF.*
 
-    Compare analytic $t_{\mathrm{rise}}$, $t_{\mathrm{fall}}$ to the simulated 10–90% edges.
+| Quantity | Reference |
+|---|---|
+| $t_r$ (10–90 %) | 3906 ps |
+| $t_f$ (90–10 %) | 2397 ps |
+| $t_{pHL}$ | 1295 ps |
+| $t_{pLH}$ | 2143 ps |
 
-> 📷 *Figure: unit inverter transient — Vo vs time* — screenshot pending (`images/02-unit-inv.png`)
+Compare with your P1 estimate. These are the numbers the AOI21 must match in
+L2, at five times the load.
 
-## P2 / L2 — Complex gate $Y = \neg(A + B \cdot C)$
+### L2 — The complex gate
 
-AOI21 structure. Size for **1.5 pF** load (×5 scale from 0.3 pF unit):
+Build your AOI21 in the DUT of `xschem/aoi21_tb.sch` with the sizes from P2,
+then drive it with each of the four input patterns and measure the edges.
 
-- $N_A = 5$ µm, $N_B = N_C = 10$ µm, $P_A = P_B = P_C = 30$ µm @ L=0.5 µm
+Getting the patterns right is most of the exercise:
 
-Worst/best case input patterns per handout. Compare analytic vs simulated $t_r$/$t_f$.
+| Case | Hold | Switch | Path |
+|---|---|---|---|
+| Worst fall | $a=0$, $c=1$ | $b$: 0→1 | series $b$–$c$ only |
+| Worst rise | $c=1$ | $b$: 1→0 | $a$ in series with $b$ alone |
+| Best fall | — | $a$, $b$, $c$ together 0→1 | every pull-down path |
+| Best rise | $b=c=0$ | $a$: 1→0 | both parallel PMOS |
 
-!!! xschem "In XSchem"
-    Draw the AOI21 gate in XSchem, netlist, and simulate with `.tran`.
+!!! warning "The best-case fall needs all three inputs to move together"
+    Holding $b=c=1$ and switching $a$ alone does not produce a falling edge at
+    all: $B\cdot C$ is already 1, so the output is low before the edge and stays
+    there. Switch $a$, $b$ and $c$ together instead.
 
-> 📷 *Figure: AOI21 schematic in XSchem* — screenshot pending (`images/03-aoi21-sch.png`)
+![AOI21 worst versus best case](images/02-aoi21-cases.png)
+*Reference build at $C_L$ = 1.5 pF.*
 
-## P3 / L3 — Transmission-gate D flip-flop
+| Case | $t_f$ | $t_r$ |
+|---|---|---|
+| Worst | 2078 ps | 4150 ps |
+| Best | 1092 ps | 3231 ps |
 
-Rebuild the DFF in XSchem. Switches/clock inv: **Wn=3u, Wp=9u**. NOR PMOS ≈ 2× clock-inv
-PMOS width.
+Compare against the unit inverter of L1: 2397 ps and 3906 ps. The reference
+sizing lands within about 15 % of the target — rise is 6 % slow and fall is
+13 % fast. Account for the direction of each miss.
 
-!!! xschem "In XSchem"
-    Use `.tran 10p 250n` with PULSE timings for CL, SETQ, RESETQ, DATA unchanged from the
-    legacy handout. Produce four plots: CL / $\overline{\text{CL}}$; SETQ / RESETQ; DATA;
-    Q / $\overline{Q}$.
+The reference decks are `spice/unit_inv.spice` and `spice/aoi21_cases.spice`.
 
-## Deliverables
+### L3 — The flip-flop
 
-- [ ] P1: analytic vs sim rise/fall table
-- [ ] P2: AOI21 schematic; worst-case $t_r$/$t_f$ vs hand estimate
-- [ ] L3: DFF functional waveforms (4 panels)
+Build the flip-flop from the cells in `common/xschem`: four `tgate`, four
+`nor2`, and one `inv` for the clock. Sizes are in the conventions table above.
+
+Simulate with:
+
+```
+CL      pulse( td=0,     tr=0.5n, tf=0.5n, pw=10n, period=20n  )
+DATA    pulse( td=5n,    tr=0.5n, tf=0.5n, pw=20n, period=40n  )
+SETQ    pulse( td=55n,   tr=0.5n, tf=0.5n, pw=40n, period=1000n)
+RESETQ  pulse( td=175n,  tr=0.5n, tf=0.5n, pw=40n, period=1000n)
+```
+
+You need a longer run than the default. Add a SPICE command to the schematic:
+press `t`, click anywhere, and type
+
+```
+^.tran 10p 250n
+```
+
+Produce the four-panel plot shown in P3, and confirm from it that:
+
+- Q takes the value DATA held just before each rising clock edge, and holds it
+  between edges;
+- SETQ forces Q high and RESETQ forces Q low, regardless of the clock;
+- Q and $\overline{Q}$ are complementary except during a transition.
+
+The first clock cycle is not meaningful. The feedback loops start from an
+arbitrary state and take a cycle to settle; ignore anything before the first
+rising edge at 20 ns.
+
+---
+
+## Expected results
+
+- [ ] **P1/L1** — analytic against simulated $t_r$ and $t_f$ for the unit inverter
+- [ ] **P2/L2** — AOI21 schematic; the four input patterns identified; worst- and
+      best-case $t_r$/$t_f$ against your estimates and against L1
+- [ ] **P3/L3** — flip-flop truth table; four-panel plot; a statement of what
+      each panel demonstrates
+
+## Extra notes
+
+- Series devices are widened by the number in the path. That is why the AOI21's
+  $b$ and $c$ NMOS are 10 while its $a$ NMOS is 5.
+- The flip-flop's NOR gates carry a doubled PMOS width for the same reason: two
+  PMOS in series must each be twice as wide to pull up like one.
+- A transmission gate has no fixed source terminal, so its body connections go
+  to the rails and never to the signal being passed.
+- Check your files before a demo:
+  ```bash
+  /foss/designs/scripts/verify_lab.sh lab3_digital
+  ```
+
+## FAQ
+
+**The output waveform does not look like a gate at all.**
+Check the input pulse width. If the output has not finished settling before the
+next input edge, everything after that is meaningless. Widen the pulse and the
+period together.
+
+**My AOI21 best-case fall never falls.**
+See the warning in L2: with $b=c=1$ the output is already low.
+
+**Q never changes.**
+Either the clock inverter is missing, so both transmission gates in a latch are
+driven by the same phase and the latch never opens, or SETQ/RESETQ is stuck
+high. Plot $\overline{CL}$ and confirm it is the complement of CL.
+
+**Q oscillates or settles between the rails.**
+A feedback loop is closed at both ends at once. Confirm TG1 and TG2 are driven
+by opposite phases, and likewise TG3 and TG4.
+
+**The first cycle looks wrong.**
+It is. The loops start in an arbitrary state; ignore it, or add
+`^.ic v(q)=0` to force a starting value.
