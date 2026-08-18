@@ -54,8 +54,6 @@ nav:
   - Getting started: getting-started/index.md
   - Labs:
       - Lab 0 — XSchem & Magic intro: labs/lab0/index.md
-      - "Lab 0 deep dive: SUE → XSchem": labs/lab0/sue-to-xschem.md
-      - "Lab 0 deep dive: MAX → Magic": labs/lab0/max-to-magic.md
       - Lab 1 — Basic SPICE: labs/lab1/index.md
       - Lab 2 — NAND layout, LVS, PEX: labs/lab2/index.md
       - "Lab 2 deep dive: Layout/LVS/PEX": labs/lab2/lvs-pex.md

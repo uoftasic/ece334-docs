@@ -1,16 +1,19 @@
 # Setting up your lab environment
 
-### Welcome
+## What this page does
 
-Welcome to the laboratory component of ECE334. Over the coming weeks you will move from the equations and timing diagrams of the lecture hall into the hands-on craft of designing, simulating, and laying out real CMOS circuits. By the end of the term you will have built and characterized inverters, logic gates, a flip-flop, and a 6T SRAM cell — and, just as importantly, you will have learned to *trust but verify*: to predict a circuit's behaviour by hand and then confirm (or happily be surprised by) it in simulation.
+Sets up the software you need for every lab in this course. You install one
+program — Docker — and it brings the rest with it.
 
-The **workbench repository** (`ece334-labs`) is your one-stop starting point. It carries the design tools, the process technology, and small starter files. These manuals live here, on the docs website.
+You do steps 1 and 2 once. After that, starting the lab environment is one
+command.
 
-If you have never used circuit design software or a command line before, **that is completely fine, and you are in the right place.** This guide assumes no prior experience. We will walk through every step for your operating system, and **Lab 0 exists precisely to introduce you gently to the tools**, at a relaxed pace with no marks attached. Take your time; the comfort you build there pays off in every lab that follows.
+No prior experience with circuit design software or the command line is
+assumed. Lab 0 introduces the tools themselves and carries no marks.
 
 ### A note on the tools we use
 
-In previous years this course relied on commercial software that ran only on specific lab machines. We have deliberately moved to an **open-source toolchain** that you can run on your own laptop — Windows, macOS (Intel *or* Apple Silicon), or Linux. The tools you will learn (XSchem, Magic, ngspice, Netgen) on the **SKY130** open process design kit are the same tools used by open-silicon programs around the world. The skills you build here are genuinely portable: they do not expire when the course ends.
+The toolchain is open source and runs on Windows, macOS (Intel or Apple Silicon), and Linux. You will use four tools against the **SKY130** open process design kit.
 
 | Tool | What it does for you |
 |------|----------------------|
@@ -32,7 +35,7 @@ There are four steps, and you only do Steps 1–2 **once**:
 3. **Start the environment** (one command or one double-click).
 4. **Open it in your browser** and run a quick check.
 
-Find your operating system below and follow it top to bottom. If you ever feel lost, that is expected the first time — just go slowly, and ask course staff if a step does not behave as described.
+Find your operating system below and follow it top to bottom. If a step does not behave as described, ask course staff.
 
 > Throughout this guide, text shown `like this` is something you type or click. Lines beginning with `#` are explanatory notes, not something you type.
 
@@ -232,7 +235,7 @@ One idea threads through the whole course: rather than handing you device consta
 
 ## When something goes wrong (and it will — that's normal)
 
-Debugging is part of design, not a sign you've done anything wrong. A few habits save a lot of time:
+A few habits save time:
 
 - **Read the terminal.** XSchem, Magic, and ngspice print their warnings and errors there. The messages are usually descriptive enough to point you at the cause — treat the terminal as your log file.
 - **Re-run the smoke test** (`/foss/designs/scripts/smoke_test.sh`) after any change; it separates "is the tool set up correctly?" from "is my circuit correct?".
@@ -242,21 +245,19 @@ Debugging is part of design, not a sign you've done anything wrong. A few habits
 - **Copy/paste not working?** Use the clipboard panel in the noVNC sidebar (not only Ctrl+C inside the VM). Restart the environment if needed — startup enables clipboard sync automatically.
 - **Magic crashes with `BadAlloc` / `X_CreatePixmap`?** Use the course command `magic -d X11 -T sky130A` (or the `magic130` alias after sourcing `.designinit`). Do not use `-d XR` in the browser desktop unless you know your container has enough shared memory.
 - **No Insert key in XSchem?** Use **`Shift-I`** or **Tools → Insert symbol** to open the component browser (see Lab 0).
-- **Ask early.** If you're stuck more than a few minutes on a *tool* problem (as opposed to a circuit-design question), reach out to course staff — these are almost always quick to resolve.
+- **Ask early.** Tool problems, as opposed to circuit-design questions, are usually quick for course staff to resolve.
 
 ---
 
-## For the curious
+## Reference
 
-If you'd like to understand *why* the course is structured this way, these go deeper:
+- [Lab 2 in depth](../labs/lab2/lvs-pex.md) — the layout → DRC → LVS → PEX flow
+- [XSchem cheatsheet](../reference/xschem-cheatsheet.md) and [Magic cheatsheet](../reference/magic-cheatsheet.md)
 
-- [Lab 2 in depth](../labs/lab2/lvs-pex.md) — the complete layout → DRC → LVS → PEX flow
-- Lab 0 migration notes: [SUE → XSchem](../labs/lab0/sue-to-xschem.md) and [MAX → Magic](../labs/lab0/max-to-magic.md)
-
-Teaching assistants and IT staff setting up the environment should refer to the **`ece334-instructor`** repository (solutions, EDA-server provisioning, and infrastructure docs), and to [Building the docs](../maintainers/building.md) for the documentation toolchain.
+Teaching assistants and IT staff setting up the environment should refer to the **`ece334-instructor`** repository, and to [Building the docs](../maintainers/building.md) for the documentation toolchain.
 
 **Reproducibility note:** the Docker image tag is pinned in `.devcontainer/devcontainer.json` and `scripts/start_*.sh` (`DOCKER_TAG`, default `2026.04` — confirm before the term), and the PDK build is recorded in `pdk/volare.lock` after the pilot run. This ensures every student works in an identical, unchanging environment all term. The default browser password (`abc123`) can be changed by setting `VNC_PW` before launching.
 
 ---
 
-We hope you come to enjoy this side of the course as much as we enjoy teaching it. There's a particular satisfaction in watching a circuit you reasoned about on paper come alive in simulation — and then seeing your own layout pass its checks. Welcome aboard, and have fun.
+Once the smoke test passes, start [Lab 0](../labs/lab0/index.md).

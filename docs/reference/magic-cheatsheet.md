@@ -1,120 +1,155 @@
-# Magic quick reference (ECE334)
+# Magic quick reference
 
-Official tutorials: <http://opencircuitdesign.com/magic/tutorials.html>
-
-## Critical collisions (if you used MAX before)
-
-| Key | MAX | Magic |
-|-----|-----|-------|
-| `p` | paint layer | (use middle-click or `:paint`) |
-| `a` | edit edge | **select area** |
-| `w` | wire mode | **nudge down** |
-| `d` | duplicate | **delete** |
-| `c` | — | **copy** |
-| `t` | text | **move** |
-
-When unsure, type the long command: `:copy`, `:delete`, `:wire`.
+Official tutorials: <http://opencircuitdesign.com/magic/tutorials/>
 
 ## Launch
 
 ```bash
-magic -d X11 -T sky130A mycell.mag
+. /foss/designs/common/.designinit
+cd /foss/designs/lab2_layout
+echo "source \$PDK_ROOT/sky130A/libs.tech/magic/sky130A.magicrc" > .magicrc
+magic -d X11 -T sky130A mycell.mag &
 ```
 
-The course standardizes on the **X11** display driver because it is reliable in the noVNC Docker desktop. On a native Linux workstation with a GPU you may prefer `magic -d OGL` or `magic -d XR` (Cairo) for faster redraw on very large layouts; those drivers can fail in the browser desktop with `BadAlloc` on `X_CreatePixmap`.
+Use the **X11** driver. The OpenGL and Cairo drivers can fail with a pixmap
+allocation error inside the container.
 
-Help: `:help` / `:help <topic>`. Quit: `:quit`.
+Magic opens two windows: the **layout** window, and **tkcon**, a Tcl console
+where you type commands. Anything below written as a command goes in tkcon.
 
-## Box (always visible)
+## The box
 
-- **Left click** — lower-left corner
-- **Right click** — upper-right corner
-- `b` / `:box` — read or set size
+Magic has no free-floating cursor selection. Almost every operation acts on
+**the box**, a rectangle you position first.
 
-## Paint & erase
+| Action | How |
+|--------|-----|
+| Place the box | left-click one corner, right-click the other |
+| Set it exactly | `box <llx> <lly> <urx> <ury>` |
+| Read it back | `box values` |
+| Use microns | `box 0um 0um 2um 1um` |
 
-| Action | Command |
-|--------|---------|
-| Paint | middle-click on layer, or `:paint <layer>` |
-| Erase all in box | middle-click empty, or `:erase` |
-| Erase one layer | `^D` or `:erase <layer>` |
-| List layers | `:layers` |
+## Painting
 
-**Transistor:** paint `ndiff`/`pdiff`, then `poly` across it — overlap becomes `ntransistor`/`ptransistor`. PMOS needs `nwell` under `pdiff`.
+| Action | How |
+|--------|-----|
+| Paint a layer into the box | middle-click the layer, or `paint <layer>` |
+| Erase a layer from the box | `erase <layer>` |
+| Erase everything in the box | `erase` |
+| Undo / redo | `u` / `Shift-U` |
 
-**Contacts:** `ndcontact`, `pdcontact`, `pcontact`, `m2contact` (verify with `:layers`).
+Common SKY130 layers: `ndiffusion`, `pdiffusion`, `poly`, `nwell`, `ndcontact`,
+`pdcontact`, `polycontact`, `m1`, `m2`, `via1`.
 
-## Select & move
+Magic infers devices from overlap. Paint `poly` across `ndiffusion` and the
+overlap becomes an `nmos`; you never place a transistor as an object.
 
-| Action | Macro |
-|--------|-------|
-| Select chunk → region → net | `s` (repeat) |
-| Select area | `a` |
-| Add to selection | `S` / `A` |
-| Clear | `C` |
-| Move | `t` or middle-drag; nudge `q w e r` |
+## View
+
+| Action | Key / command |
+|--------|---------------|
+| Zoom to fit | `v` |
+| Zoom in / out | `z` / `Shift-Z` |
+| Pan | arrow keys |
+| Expand subcells | `x` (`Shift-X` to collapse) |
+| Show what is under the box | `what` |
+
+An unexpanded subcell draws as an empty rectangle with its name. If a layout
+looks blank, expand it.
+
+## Selecting and moving
+
+| Action | How |
+|--------|-----|
+| Select what is under the box | `s` |
+| Select an entire cell | `S` |
+| Select a whole connected net | `select net` |
+| Move the selection | `m` plus a direction, or arrow keys |
 | Copy | `c` |
 | Delete | `d` |
-| Stretch | `T` or `Q W E R` |
-| Plow | `:plow <dir>` |
 
-## Wiring tool
-
-Press **space** (`:tool`) to cycle tools → wiring tool.
-
-- **Left-click** sample — adopt layer/width
-- **Right-click** — add leg (bend)
-- **Middle-click** — contact / change layer
-- `:wire type metal1 <width>`
-
-## Labels & power
+## Labels
 
 ```
-:label Vdd! e
-:label GND! e
-:label In1 n
+label VDD          # label the box on the current layer
+label GND! -e      # a trailing ! makes the name global
 ```
 
-Global nets use trailing `!`.
+Label every port. LVS matches by name: an unlabelled or misspelled port is the
+usual reason Netgen reports a mismatch on an otherwise correct layout.
 
 ## DRC
 
-| Action | Command |
-|--------|---------|
-| Explain errors in box | `y` / `:drc why` |
-| Count errors | `:drc count` |
-| Step errors | `:drc find` (`.` repeats) |
-| Full recheck | `:drc check` |
-| Hide dots | `:see no errors` |
+DRC runs continuously. White dots mark violations, and the toolbar shows a live
+count.
 
-White dots = violations (same idea as MAX).
+| Command | Meaning |
+|---------|---------|
+| `drc check` | re-run over the whole cell |
+| `drc count` | how many violations |
+| `drc why` | explain the violations under the box |
+| `drc catchup` | finish any pending background checking |
 
-## Layers visibility
+Target zero before extracting. `drc why` names the rule, which is faster than
+guessing at spacing.
 
-```
-:see no poly
-:see metal1
-:see no allSame    # dim non-edit cells
-```
-
-No exact per-layer **lock** — use edit-cell isolation or hide layers while editing.
-
-## Hierarchy
-
-| Action | Command |
-|--------|---------|
-| Place instance | `:getcell <name>` |
-| Array | `:array 4 1` |
-| Edit subcell | select instance → `:edit` |
-| Expand view | `^X` toggle |
-| Save all | `:writeall` |
-
-## Extract (Lab 2+)
+## Extraction, LVS, PEX
 
 ```
-extract all
-ext2spice lvs
+extract all                 # build the .ext files
+ext2spice lvs               # device-level netlist, no parasitics
 ext2spice -o cell.lvs.spice
+
+extract all                 # for PEX, extract again
+ext2spice cthresh 0         # keep every coupling capacitance
+ext2spice -o cell.pex.spice
 ```
 
-PEX: `ext2spice cthresh 0` then `ext2spice -o cell.pex.spice`
+`cthresh 0` is what makes the difference between the pre- and post-PEX
+netlists: without it, capacitances below the threshold are discarded.
+
+Compare against a schematic with Netgen:
+
+```bash
+netgen -batch lvs "cell.lvs.spice cell" "cell_sch.spice cell" \
+       $PDK_ROOT/sky130A/libs.tech/netgen/sky130A_setup.tcl
+```
+
+A clean run reports **Circuits match uniquely.**
+
+## Batch use
+
+```bash
+magic -dnull -noconsole -T sky130A <<'EOF'
+load mycell
+drc check
+puts "errors: [drc list count total]"
+quit -noprompt
+EOF
+```
+
+Magic reads commands on stdin in GUI mode too, which is the reliable way to
+script it:
+
+```bash
+( echo "view"; echo "drc check"; sleep 200 ) | magic -d X11 -T sky130A mycell.mag &
+```
+
+## Devices from the PDK
+
+```
+magic::gencell sky130::sky130_fd_pr__nfet_01v8 myfet w 1 l 0.5
+```
+
+This drops a parameterised device **as a subcell**, so it appears as a named
+rectangle until you expand it with `x`. For Lab 0 and Lab 2 you paint the
+layers yourself instead.
+
+## Common failures
+
+| Symptom | Cause |
+|---------|-------|
+| Layout looks empty, one named rectangle | An unexpanded subcell. Press `x`. |
+| `Failed to load technology` | No `.magicrc` in the working directory. |
+| Netgen reports a mismatch on correct-looking layout | Missing or misspelled port labels. |
+| Nothing happens when you paint | The box is empty or off-screen. `box values` to check. |

@@ -31,9 +31,17 @@ to GitHub Pages.
   `docs/stylesheets/extra.css` (mirroring the original LaTeX colour boxes). Use them as
   `!!! terminal "In the noVNC desktop terminal"`, etc.
 - **Math** uses `pymdownx.arithmatex` (generic mode + MathJax). Inline `$...$`, display `$$...$$`.
-- **Figures:** screenshots are not yet captured. Each figure is currently a caption placeholder
-  noting its intended filename under the lab's `images/` directory. Drop the real PNG in and
-  replace the placeholder with `![caption](images/<name>)` when available.
+- **Figures** live in each lab's `images/` directory, named `NN-slug.png`. They are
+  generated, not collected by hand:
+    - Tool screenshots come from `ece334-labs/scripts/make_figures.sh`, which drives
+      XSchem and Magic on the container's X display.
+    - Waveform figures come from `ece334-labs/instructors/figures/make_waveform_figs.py`,
+      which plots real simulation output with matplotlib so the axes and the measured
+      value are legible and reproducible.
+  Both need the reference solutions in `ece334-labs/instructors/`. Run
+  `scripts/install_capture_deps.sh` once per container first.
+- **Checks:** `make verify` runs the strict build, confirms every referenced image
+  exists, and fails if the prose drifts back toward the pre-2026 register.
 
 ## PDF generation (TODO — deferred)
 

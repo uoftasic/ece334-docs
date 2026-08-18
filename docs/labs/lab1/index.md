@@ -1,216 +1,325 @@
-# ECE334 Lab 1: Basic SPICE Simulations
+# Lab 1 — Basic SPICE simulations
 
-*Digital Electronics — SKY130 Open-Source Flow*
+*ECE334 — Digital Electronics — SKY130 open-source flow*
+
+## Objective
+
+Use XSchem and ngspice to simulate four circuits, and analyse each result in
+Python. You start with an RC network, extract the device parameters $K_P$ and
+$V_t$ from a diode-connected transistor, characterise a CMOS inverter, and
+finish by building a pulse generator and sizing it for a specified pulse width.
+
+Every section has two halves. **Preparation** is hand analysis, done before the
+lab session. **Lab Work** is the simulation that checks it. Bring the
+preparation with you; the lab is short if you have done it and long if you have
+not.
 
 ## Course conventions
 
 --8<-- "includes/conventions.md"
 
-In this lab you learn the **loop you will use all term**: build a circuit in XSchem,
-press a button to simulate it, and analyse the result in Python. Tools: **XSchem**
-(schematics + launch buttons), **ngspice** (simulator), and a tiny course Python
-helper, **`ece334lib`**, that you drive from a Jupyter notebook.
+## The tools
 
-## Your interactive workbench
+| File | Purpose |
+|------|---------|
+| `xschem/*_tb.sch` | Testbenches: stimulus, load, supply, and launcher buttons. You build your circuit inside the DUT. |
+| `lab1.ipynb` | Your report. Loads each result, measures it, and holds your answers. |
+| `spice/*.spice` | The same circuits as plain decks, if you prefer the command line. |
 
-Each lab folder ships three kinds of files that work together:
+Start the environment, then:
 
-| File | What it is |
-|------|------------|
-| `xschem/*_tb.sch` | **Testbenches** — ready-made schematics with stimulus, load, and **launcher buttons**. You drop your own circuit into the DUT. |
-| `lab1.ipynb` | A **Jupyter notebook** that loads the simulation results and measures them with `ece334lib`. |
-| `spice/*.spice` | Plain reference decks, if you prefer the command line. |
+```bash
+. /foss/designs/common/.designinit
+cd /foss/designs/lab1_spice
+xschem xschem/rc_tb.sch &
+```
 
-### The naming contract (important)
+Each testbench carries three buttons:
 
-The testbench and the notebook find your signals **by net name**. Whenever you build a
-circuit, use these names and the analysis "just works":
+- **Netlist & Simulate** — saves, netlists, and runs ngspice. Writes a named
+  `.raw` file.
+- **Annotate OP** — overlays DC operating-point voltages on the schematic.
+- **Run analysis notebook** — executes `lab1.ipynb`.
+
+The notebook finds results by filename through `sim.raw("rc_tb.raw")`, so it
+does not matter which directory you started XSchem from.
+
+### Net names
+
+The testbench and the notebook agree through net names. Use these and the
+analysis works unchanged:
 
 | Net | Meaning |
 |-----|---------|
 | `in` | stimulus input |
 | `out` | the output you measure |
-| `vdd` | 1.8 V supply |
-| `vss` | ground (0 V) |
+| `n3` | chain output, P4 only |
+| `vdd` / `vss` | 1.8 V supply / ground |
 
-A testbench's **DUT** (device-under-test) is an empty box symbol with exactly these
-four pins. You open it and build your circuit inside — the pins are the contract.
-
-### The launcher buttons
-
-Inside every `*_tb.sch` you'll see clickable buttons (the arrow shapes):
-
-- **Netlist & Simulate** — saves, netlists, and runs ngspice. Writes a named `.raw`
-  results file (e.g. `rc_tb.raw`).
-- **Annotate OP** — overlays DC operating-point node voltages on the schematic.
-- **Run analysis notebook** — executes `lab1.ipynb` for you.
-
-### Launching the notebook
-
-!!! terminal "In the noVNC desktop terminal"
-    ```bash
-    . /foss/designs/common/.designinit
-    cd /foss/designs/lab1_spice
-    jlab          # starts JupyterLab; open the printed URL, then open lab1.ipynb
-    ```
-
-The `jlab` alias and `import ece334lib` are set up by `.designinit` — source it once
-per terminal.
-
-??? note "Why script the analysis at all?"
-    A SPICE run doesn't hand you "the rise time" — it hands you a **table of numbers**.
-    Turning that into a meaningful answer by hand is slow and impossible to reproduce. A
-    couple of lines of Python do it in a way that is fast, exact, and **re-runnable**:
-    change a transistor width, re-simulate, re-run the cell, and every number updates.
-    That is exactly how working chip designers post-process simulations.
+A DUT is an empty box symbol carrying exactly these pins. Open it, build your
+circuit inside, and leave the pin names alone.
 
 ---
 
-## P1 — RC step response
+## Preparation
 
-Open `xschem/rc_tb.sch`. A 1.8 V step drives `R1` (1 kΩ) into `C1` (1 pF) at node
-`out`. The output charges with time constant $\tau = RC$.
+### P1 — RC divider
 
-### Hand analysis
+![RC divider testbench in XSchem](images/01-rc-testbench.png)
+*`rc_tb.sch`. The source, R1, R2 and C1 are wired by net name; the launcher
+buttons are on the left.*
+
+A 1.8 V step drives $R_1 = 1\ \mathrm{k}\Omega$ into the node `out`, which is
+loaded by $R_2 = 2\ \mathrm{k}\Omega$ in parallel with $C_1 = 0.7\ \mathrm{pF}$.
+The input pulse has $t_r = t_f = 0.2$ ns, a width of 3 ns, and a period of 6 ns.
+
+Derive, by hand:
 
 $$
-\begin{aligned}
-  \tau &= R\,C = (1\ \mathrm{k}\Omega)(1\ \mathrm{pF}) = 1\ \mathrm{ns} \\
-  t_{r}\,(10\text{–}90\%) &= \tau \ln 9 \approx 2.20\ \mathrm{ns}
-\end{aligned}
+V_{out}(\infty) = V_{DD}\frac{R_2}{R_1+R_2},
+\qquad
+\tau = (R_1 \parallel R_2)\,C_1,
+\qquad
+t_r\,(10\text{–}90\%) = \tau \ln 9
 $$
 
-### Simulate & analyse
+Sketch $V_{in}$ and $V_{out}$ over the first 15 ns.
 
-1. In `rc_tb.sch`, press **Netlist & Simulate**. This writes `rc_tb.raw`.
-2. In `lab1.ipynb`, run **§1 RC step response**. It loads the result and measures:
+### P2 — Device parameters
 
-   ```python
-   from ece334lib import sim, measure, plot
-   rc = sim.run("xschem/rc_tb.raw")
-   t_rise, _ = measure.edges_10_90(rc, "out", vdd=1.8)
-   plot.transient(rc, ["in", "out"])
-   ```
+A diode-connected transistor has its gate tied to its drain, so $V_{GS} =
+V_{DS}$ and the device is saturated whenever it conducts:
 
-   You should see $\tau \approx 1$ ns and $t_r \approx 2.20$ ns — matching the hand
-   analysis exactly.
+$$
+I_D = \tfrac{1}{2} K_P \frac{W}{L}\,(V_{GS}-V_t)^2
+\quad\Longrightarrow\quad
+\sqrt{I_D} = \sqrt{\tfrac{1}{2}K_P \tfrac{W}{L}}\;(V_{GS}-V_t)
+$$
 
-!!! tip "Make it yours"
-    Change `R1` or `C1` in the schematic, re-simulate, and re-run the cell. Confirm
-    that $\tau$ tracks $R\cdot C$.
+$\sqrt{I_D}$ is therefore linear in $V_{GS}$. Fitting a line to it over the
+strong-inversion region gives both parameters:
+
+$$
+K_P = \frac{2m^2}{W/L}, \qquad V_t = \text{the x-intercept}
+$$
+
+where $m$ is the fitted slope. Write down how you will obtain $K_P$ and $V_t$
+from a fitted slope and intercept before you run anything.
+
+### P3 — Inverter timing
+
+Model a conducting transistor as a resistor:
+
+$$
+R_{eq} = \frac{V_{DD}}{K_P \frac{W}{L}\,(V_{DD}-|V_t|)}
+$$
+
+The inverter's output then charges and discharges $C_L$ exactly as the RC
+network in P1 did, so:
+
+$$
+t_r \approx 2.2\,R_{eq,p}\,C_L, \qquad t_f \approx 2.2\,R_{eq,n}\,C_L
+$$
+
+With $W_n = 1$, $W_p = 3$, $L = 0.5$ and $C_L = 0.2$ pF, compute $R_{eq,n}$,
+$R_{eq,p}$, $t_r$ and $t_f$. Leave $K_P$ and $V_t$ symbolic — you measure them
+in L2 and substitute afterwards.
+
+### P4 — Pulse generator
+
+![Pulse generator testbench](images/08-pulsegen-tb.png)
+*`pulsegen_tb.sch`. The DUT exposes `n3`, the chain output, so the testbench can
+plot it beside `in` and `out`.*
+
+Three inverters in series feed one input of a NAND; the undelayed signal feeds
+the other. Write the NAND truth table, then state what `out` does when `in`
+rises, and explain why the resulting pulse width equals the delay of the
+inverter chain.
+
+Using your P3 expression for a single inverter's delay, write the pulse width in
+terms of $R_{eq}$ and the capacitance at each chain node.
 
 ---
 
-## Extract $K_P$ and $V_t$ (diode-connected device)
+## Lab Work
 
-Before the inverter, extract the device parameters you'll need for its hand estimate.
-A diode-connected device (gate tied to drain) is always in saturation when on, so
-$I_D = \tfrac12 K_P (W/L)(V_{GS}-V_t)^2$, which makes $\sqrt{I_D}$ **linear** in $V_{GS}$:
+### L1 — RC step response
 
-- slope $m = \sqrt{\tfrac12 K_P (W/L)} \Rightarrow K_P = 2m^2/(W/L)$
-- x-intercept of the fitted line $= V_t$
-
-### Simulate & analyse
-
-1. Open `xschem/diode_tb.sch`. Build a diode-connected NMOS in the DUT (gate+drain → `g`,
-   source+body → `s`; size $W=10$, $L=2$ — **unitless**). Press **Netlist & Simulate**;
-   it writes `diode_nmos.raw`.
-2. Run **§2** of `lab1.ipynb`. `ece334lib` does the fit for you:
-
-   ```python
-   diode = sim.run("xschem/diode_nmos.raw")
-   res = measure.extract_square_law(diode["g"], diode["id"], wl=10/2, vmin=1.0, vmax=1.7)
-   print(res["Vt"], res["KP"])
-   ```
-
-### What the helper is doing (your scripting on-ramp)
-
-`extract_square_law` is just five lines of NumPy — read them once and the analysis
-stops being mysterious. Each line uses one core idea:
+Open `xschem/rc_tb.sch` and press **Netlist & Simulate**. It writes `rc_tb.raw`.
+Run section P1 of `lab1.ipynb`:
 
 ```python
-import numpy as np
-d = np.loadtxt("nmos_iv.txt")           # (1) load a table ngspice wrote (terminal route)
-vgs, idd = d[:, 0], d[:, 1]             # (2) pick the VGS and ID columns with [:, k]
-sid = np.sqrt(np.clip(idd, 0, None))    # (3) math applies to the whole column at once
-sel = (vgs > 1.0) & (vgs < 1.7)         # (4) a boolean mask keeps strong-inversion rows
-m, b = np.polyfit(vgs[sel], sid[sel], 1)  # (5) best-fit line -> slope m, intercept b
-Vt = -b / m                             # x-intercept is Vt
-KP = 2 * m**2 / (10 / 2)                # slope -> KP  (extraction device W/L = 10/2)
-print(f"Vtn = {Vt:.3f} V    KPn = {KP*1e6:.1f} uA/V^2")
+rc = sim.raw("rc_tb.raw")
+t_rise, _ = measure.edges_10_90(rc, "out", vdd=1.2)
+print(f"t_rise = {t_rise*1e12:.1f} ps,  tau = {t_rise/np.log(9)*1e12:.1f} ps")
+plot.transient(rc, ["in", "out"])
 ```
 
-!!! tip "Prefer the terminal?"
-    The committed deck `spice/nmos_diode.spice` does the same sweep:
-    `ngspice -b nmos_diode.spice` writes `nmos_iv.txt`, which the snippet above loads.
+![RC step response](images/02-rc-waves.png)
+*Measured 10–90 % rise time, 1034 ps. The output settles at 1.198 V, not the
+1.8 V rail, because $R_1$ and $R_2$ divide it.*
 
-Repeat with `pmos_diode.spice` for $|V_{tp}|$ and $K_{Pp}$. **Record all four numbers** —
-you'll plug them into the inverter timing estimate below. *(Typical on SKY130:
-$V_{tn}\approx0.46$ V, $K_{Pn}\approx170\ \mu A/V^2$; yours will vary with the fit window.)*
+Compare against P1. The reference build measures:
 
----
+| Quantity | Hand | Simulated |
+|---|---|---|
+| $V_{out}(\infty)$ | 1.200 V | 1.198 V |
+| $t_r$ (10–90 %) | 1025 ps | 1034 ps |
+| $\tau$ | 466.7 ps | 470.8 ps |
 
-## P2 — CMOS inverter
+Read $\tau$ from $t_r/\ln 9$ rather than from the 63.2 % point. The input takes
+0.2 ns to rise, so there is no single instant the step "starts", and a 63.2 %
+reading taken from $t = 0$ is about 16 % high.
 
-Now build a real circuit into the testbench DUT.
+Change $R_1$ or $C_1$, re-simulate, and confirm $\tau$ tracks $(R_1\parallel
+R_2)C_1$.
 
-!!! xschem "In XSchem"
-    1. Open `xschem/inv_tb.sch`. Note the stimulus (`Vin` pulse on `in`), the load
-       (`Cload` on `out`), the supply (`Vdd`), and the **DUT** box.
-    2. **Double-click the DUT** to open `dut_inv.sch`. Build a CMOS inverter inside it:
-        - PMOS `pfet_01v8`: source → `vdd`, drain → `out`, gate → `in`, body → `vdd`
-        - NMOS `nfet_01v8`: source → `vss`, drain → `out`, gate → `in`, body → `vss`
-        - Sizes: $W_n = 1$, $W_p = 3$, $L = 0.5$ — see the unit warning below.
-       Keep the four pin names (`in`, `out`, `vdd`, `vss`) unchanged.
+### L2 — Extract $K_P$ and $V_t$
 
-    !!! warning "Enter W and L as unitless microns — no `u`"
-        The SKY130 device models are **binned on plain micron numbers**. Type
-        `W=1` and `L=0.5`, *not* `W=1u`/`L=0.5u`. A value with a `u` suffix
-        (i.e. metres) falls outside every bin and ngspice fails with
-        *"could not find a valid modelname"*. This is the single most common
-        first-simulation error — when you see it, check your `u`s.
-    3. Back in `inv_tb.sch`, press **Netlist & Simulate**. It writes both
-       `inv_tb_vtc.raw` (DC sweep) and `inv_tb_tran.raw` (transient).
+Open `xschem/diode_tb.sch` and build a diode-connected NMOS in the DUT: gate and
+drain to `g`, source and body to `s`, `W = 10`, `L = 2`.
 
-### Transfer curve & noise margins
+![Diode-connected NMOS](images/03-diode-dut.png)
+*`dut_diode.sch` completed. The gate connects back to the drain; source and body
+are tied at `s`.*
 
-Run **§2** of `lab1.ipynb`:
+!!! warning "Enter W and L without a `u`"
+    Type `W=10` and `L=2`, not `W=10u`/`L=2u`. The SKY130 models are binned on
+    plain micron numbers; a value in metres falls outside every bin and ngspice
+    stops with *"could not find a valid modelname"*. This is the most common
+    first-simulation failure in this course.
+
+Press **Netlist & Simulate**, then run section P2 of the notebook:
 
 ```python
-vtc = sim.run("xschem/inv_tb_vtc.raw")
-nm  = measure.noise_margins(vtc, "in", "out")   # VM, VIL, VIH, VOL, VOH, NMH, NML
-plot.vtc(vtc, "in", "out")
+d = sim.raw("diode_nmos.raw")
+res = measure.extract_square_law(d["g"], d["id"], wl=10/2, vmin=1.0, vmax=1.7)
+print(res["Vt"], res["KP"])
 ```
 
-Report the switching threshold $V_M$ and the noise margins $NM_H$, $NM_L$.
+![Square-law fit](images/04-sqrt-id-fit.png)
+*The fit is taken over 1.0–1.7 V (shaded), where the device is strongly
+inverted. Extending it below about 0.8 V bends the curve and biases both
+parameters.*
 
-### Transient timing vs hand estimate
+The reference build gives $V_{tn} = 0.462$ V and $K_{Pn} = 177.8\ \mu$A/V².
+Repeat with a PMOS to obtain $|V_{tp}|$ and $K_{Pp}$. **Record all four
+numbers** — L3 and L4 need them.
 
-Run **§3**. It measures propagation delay and edge rates, and compares them with the
-equivalent-resistance estimate built from **your extracted** $K_P$, $V_t$:
+Your values will differ slightly with the fit window. That is the point: the
+square law is an approximation to a short-channel device, and the parameters you
+get depend on where you fit it.
 
-$$
-R_{\mathrm{eq}} = \frac{V_{DD}}{K_P (W/L)(V_{DD}-V_t)}, \qquad
-t_{r,f} \approx 2.2\, R_{\mathrm{eq}}\, C_L
-$$
+### L3 — Inverter
 
-Edit the `KPn, KPp, Vtn, Vtp` values in the cell to your numbers, then compare the
-simulated and hand-estimated $t_r$, $t_f$. Discuss the gap (short-channel effects).
+Build the inverter in the DUT of `xschem/inv_tb.sch`: $W_n = 1$, $W_p = 3$,
+$L = 0.5$.
+
+![Inverter DUT](images/05-inv-dut.png)
+*`dut_inv.sch` completed. PMOS source to `vdd`, NMOS source to `vss`, both
+bodies tied to their own source, drains joined at `out`.*
+
+Selecting a device and pressing `q` opens its properties:
+
+![Instance properties](images/10-edit-properties.png)
+*`W=3 L=0.5` on the PMOS. `spiceprefix=X` and the diffusion geometry are filled
+in by the symbol — you only set W and L.*
+
+Press **Netlist & Simulate**. It writes `inv_tb_vtc.raw` (DC sweep) and
+`inv_tb_tran.raw` (transient).
+
+**Transfer characteristic.** Run notebook section P3a:
+
+![Inverter VTC](images/06-inv-vtc.png)
+*$V_M = 0.739$ V, below mid-rail. $NM_H = 0.982$ V and $NM_L = 0.655$ V.*
+
+Report $V_M$, $NM_H$ and $NM_L$. $V_M$ sits below $V_{DD}/2$: $W_p/W_n = 3$ does
+not fully compensate the mobility ratio in this process. Say what you would
+change to move $V_M$ to mid-rail, and what that costs.
+
+**Transient.** Run section P3b:
+
+![Inverter transient](images/07-inv-transient.png)
+*$t_r = 2619$ ps, $t_f = 1606$ ps, $t_{pd} = 885$ ps with $C_L = 0.2$ pF.*
+
+Substitute your extracted $K_P$ and $V_t$ into the P3 expressions and compare.
+Expect the hand estimate to be optimistic. Account for the gap: velocity
+saturation makes the real device weaker at high $V_{GS}$ than the square law
+predicts, and $R_{eq}$ ignores the output-node diffusion capacitance.
+
+### L4 — Pulse generator
+
+Build the circuit in the DUT of `xschem/pulsegen_tb.sch` from the `inv` and
+`nand2` cells in `common/xschem`. Press `Shift-I` to open the symbol browser.
+Wire the last chain node to the `n3` port.
+
+Press **Netlist & Simulate**, then run notebook section P4:
+
+![Pulse generator waveforms](images/09-pulsegen-waves.png)
+*`in` rises; `n3` is still high for the length of the chain delay; both NAND
+inputs are high over that window, so `out` is low for 598 ps.*
+
+Measure the pulse width between the 50 % points. The reference build gives
+**598.4 ps**. Compare with your P4 prediction.
+
+**Design task.** Add a capacitor at `n3` and size it so the pulse width is
+**1.5 ns**. Predict the value first from your measured $R_{eq}$ — the extra
+delay a load $C$ adds to one stage is $\approx 0.69\,R_{eq}C$ — then confirm by
+simulation. State the value you predicted, the value you used, and the width you
+measured.
+
+Sizing by trial and error and reporting only the final number is not sufficient;
+the prediction is the exercise.
 
 ---
 
-## The notebook, rendered
+## Expected results
 
-This is the executed `lab1.ipynb` for reference — your own run replaces these numbers
-with your circuit's results.
+Submit the executed `lab1.ipynb`. It must contain, for each section, your hand
+analysis, the measured value, and a written comparison.
 
---8<-- "labs/lab1/notebook/lab1.md"
+- [ ] **L1** — $V_{in}$ and $V_{out}$ plot; measured $\tau$ and $t_r$ against P1.
+- [ ] **L2** — NMOS and PMOS fits; $V_{tn}$, $K_{Pn}$, $|V_{tp}|$, $K_{Pp}$.
+- [ ] **L3** — VTC with $V_M$, $NM_H$, $NM_L$; transient $t_r$, $t_f$, $t_{pd}$
+      against the P3 estimate built from your own parameters.
+- [ ] **L4** — pulse-generator waveforms and measured width; the capacitor you
+      predicted for 1.5 ns and the width you achieved.
 
----
+## Extra notes
 
-## Deliverables
+- Rise and fall times are 10–90 % unless stated otherwise. Propagation delay is
+  50 % input to 50 % output. Pulse width is 50 % to 50 %.
+- The pulse from this circuit is **low-going**: measure from the falling edge to
+  the following rising edge.
+- Both routes run the same circuit. `spice/pulsegen.spice` reproduces
+  `pulsegen_tb.sch` including the diffusion geometry the XSchem symbols generate
+  for you; both give 598.4 ps. A hand-written deck that omits `ad`/`as`/`pd`/`ps`
+  runs about 25 % fast.
+- To check your files before a demo:
+  ```bash
+  /foss/designs/scripts/verify_lab.sh lab1_spice
+  ```
+  It netlists and simulates every testbench and fails loudly on an empty DUT.
 
-- [ ] **RC:** $V_{in}/V_{out}$ plot; measured $\tau$ and $t_r$ vs hand analysis
-- [ ] **Extraction:** NMOS + PMOS fits; four parameters ($V_{tn}$, $K_{Pn}$, $|V_{tp}|$, $K_{Pp}$)
-- [ ] **Inverter VTC:** $V_M$ and noise margins $NM_H$, $NM_L$
-- [ ] **Inverter transient:** simulated vs hand-estimated $t_r$, $t_f$, $t_{pd}$
+## FAQ
+
+**ngspice says "could not find a valid modelname".**
+A width or length has a `u` suffix. Use `W=1`, `L=0.5`.
+
+**The netlist contains `IS MISSING !!!!` and no transistors.**
+XSchem cannot find a symbol. Re-run `. /foss/designs/common/.designinit`, which
+reinstalls the course configuration at `~/.xschem/xschemrc`, then reopen the
+schematic.
+
+**`write` fails with "no writable vector found".**
+The DUT is still empty, so the nets named in the `.control` block do not exist.
+Build the circuit inside the DUT first.
+
+**The notebook cannot find a `.raw` file.**
+Press **Netlist & Simulate** before running the cell. Results are written to
+`/foss/designs/.xschem/simulations`, and `sim.raw()` looks there and in the
+current directory.
+
+**My extracted $K_P$ and $V_t$ differ from the numbers above.**
+Expected. They depend on the fit window and on which device you swept. Use your
+own values throughout, and say which window you used.
