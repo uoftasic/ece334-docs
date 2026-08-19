@@ -20,7 +20,7 @@ make site      # strict production build into site/
 
 `make site` runs `mkdocs build --strict`, which fails on broken links, missing pages, or missing
 media — keep it green. On push to `main`, the
-[`deploy-docs.yml`](https://github.com/ece334/ece334-docs/actions) workflow builds and publishes
+[`deploy-docs.yml`](https://github.com/uoftasic/ece334-docs/actions) workflow builds and publishes
 to GitHub Pages.
 
 ### Authoring conventions
