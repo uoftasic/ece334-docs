@@ -76,7 +76,7 @@ Docker is the single piece of software you install yourself. It is free for educ
        docker run hello-world
        ```
 
-> **How much disk space?** The toolchain downloads about **4 GB** the first time, and you'll want roughly **20 GB free** overall. The first launch will take a while depending on your internet speed — this is normal, and it only happens once.
+> **How much disk space?** The image is **5.5 GB compressed** to download and unpacks to about **19 GB**; with the PDK volume and a running container, budget **30 GB free** to be comfortable — a measured install comes to roughly 25 GB. The first launch takes a while depending on your connection; it only happens once.
 
 ---
 
