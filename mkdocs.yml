@@ -1,7 +1,7 @@
 site_name: ECE334 — Digital Electronics
 site_description: Lab manuals, setup guide, and reference for ECE334 (SKY130 open-source flow)
 site_url: https://uoftasic.com/ece334-docs/
-repo_url: https://github.com/ece334/ece334-docs
+repo_url: https://github.com/uoftasic/ece334-docs
 edit_uri: edit/main/docs/
 
 theme:
