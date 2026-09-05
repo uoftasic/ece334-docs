@@ -356,8 +356,9 @@ reinstalls the course configuration at `~/.xschem/xschemrc`, then reopen the
 schematic.
 
 **`verify_lab.sh` says "empty subcircuit(s) … the DUT has not been built yet".**
-The testbench is fine; the DUT behind it is still the empty stub. Double-click
-the DUT and build the circuit inside it.
+The testbench is fine; the DUT behind it is still the empty stub. Click the DUT
+once to select it, then press `e` to descend into it, and build the circuit
+there. (Double-clicking opens the Edit Properties dialog instead.)
 
 **`write` fails with "no writable vector found".**
 Same cause seen from ngspice's side: the nets named in the `.control` block do

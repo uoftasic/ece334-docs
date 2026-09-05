@@ -76,7 +76,7 @@ Docker is the single piece of software you install yourself. It is free for educ
        docker run hello-world
        ```
 
-> **How much disk space?** The image is **5.5 GB compressed** to download and unpacks to about **19 GB**; with the PDK volume and a running container, budget **30 GB free** to be comfortable — a measured install comes to roughly 25 GB. The first launch takes a while depending on your connection; it only happens once.
+> **How much disk space?** The image is **3.8 GB compressed** to download and unpacks to about **12 GB**; with the PDK volume and a running container, budget **20 GB free** to be comfortable. The first launch takes a while depending on your connection; it only happens once.
 
 ---
 
@@ -255,7 +255,7 @@ A few habits save time:
 
 Teaching assistants and IT staff setting up the environment should refer to the **`ece334-instructor`** repository, and to [Building the docs](../maintainers/building.md) for the documentation toolchain.
 
-**Reproducibility note:** the Docker image tag is pinned in `.devcontainer/devcontainer.json` and `scripts/start_*.sh` (`DOCKER_TAG`, default `2026.04` — confirm before the term), and the PDK build is recorded in `pdk/volare.lock` after the pilot run. This ensures every student works in an identical, unchanging environment all term. The default browser password (`abc123`) can be changed by setting `VNC_PW` before launching.
+**Reproducibility note:** the Docker image tag is pinned in `.devcontainer/devcontainer.json` and `scripts/start_*.sh` (`DOCKER_TAG`, default `2026.08` — confirm before the term), and the PDK build is recorded in `pdk/volare.lock` after the pilot run. This ensures every student works in an identical, unchanging environment all term. The default browser password (`abc123`) can be changed by setting `VNC_PW` before launching.
 
 ---
 

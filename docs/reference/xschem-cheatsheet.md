@@ -106,7 +106,7 @@ Pin order on both device symbols is **D G S B**.
 | Netlist | menubar **Netlist**, or `Shift-N` |
 | Simulate | menubar **Simulate** |
 | Fire a launcher (green arrow) | click it, then `Ctrl-H` |
-| Plot a net | select the wire, press `p` |
+| Plot a net | menubar **Waves → Tran**, then pick the `.raw` |
 | Annotate operating point | the **Annotate OP** button |
 
 Netlists and results land in `/foss/designs/.xschem/simulations`. In a notebook,

@@ -235,8 +235,8 @@ ext2spice -o nand2.pex.spice
 ```
 
 `cthresh 0` keeps every coupling capacitance. Without it the small ones are
-dropped and the comparison shows nothing. The reference layout yields 14
-capacitors, totalling a few femtofarads.
+dropped and the comparison shows nothing. The reference layout yields 12
+capacitors, totalling about 9.3 fF.
 
 Simulate both netlists with the same testbench, changing only the `.include`:
 
@@ -245,23 +245,23 @@ ngspice -b spice/nand2_compare.spice
 ```
 
 ![Ideal versus extracted](images/03-pex-compare.png)
-*With a 0.1 pF load the two traces almost coincide: 467.8 ps against 473.5 ps,
-a 1.2 % difference.*
+*With a 0.1 pF load the two traces almost coincide: 467.8 ps against 474.3 ps,
+a 1.4 % difference.*
 
 That looks like a disappointing result. It is the correct one, and the reason is
 the point of the exercise. Sweep the load and measure again:
 
 ![Parasitic contribution against load](images/04-pex-vs-load.png)
-*The parasitics add a roughly fixed 6 ps. Their share of the total delay is
-5.8 % with no load and 1.2 % at 0.1 pF.*
+*The parasitics add a roughly fixed 6.6 ps. Their share of the total delay is
+6.8 % with no load and 1.4 % at 0.1 pF.*
 
 | $C_L$ | ideal | extracted | change |
 |-------|-------|-----------|--------|
-| 0 | 100.0 ps | 105.8 ps | +5.8 % |
-| 1 fF | 104.0 ps | 109.8 ps | +5.6 % |
-| 5 fF | 120.0 ps | 125.7 ps | +4.8 % |
-| 20 fF | 177.1 ps | 182.7 ps | +3.2 % |
-| 100 fF | 467.8 ps | 473.5 ps | +1.2 % |
+| 0 | 100.0 ps | 106.8 ps | +6.8 % |
+| 1 fF | 104.0 ps | 110.8 ps | +6.5 % |
+| 5 fF | 120.0 ps | 126.7 ps | +5.6 % |
+| 20 fF | 177.1 ps | 183.6 ps | +3.7 % |
+| 100 fF | 467.8 ps | 474.3 ps | +1.4 % |
 
 Layout parasitics are an approximately fixed additive load. They dominate when a
 gate drives a short local wire and vanish into the noise when it drives a long

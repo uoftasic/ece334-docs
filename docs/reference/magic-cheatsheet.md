@@ -72,7 +72,7 @@ looks blank, expand it.
 
 ```
 label VDD          # label the box on the current layer
-label GND! -e      # a trailing ! makes the name global
+label GND!         # a trailing ! makes the name global
 ```
 
 Label every port. LVS matches by name: an unlabelled or misspelled port is the
@@ -111,7 +111,13 @@ netlists: without it, capacitances below the threshold are discarded.
 Compare against a schematic with Netgen:
 
 ```bash
-netgen -batch lvs "cell.lvs.spice cell" "cell_sch.spice cell" \
+# Prefer the course wrapper -- it handles the netgen quirk below for you:
+/foss/designs/scripts/run_lvs.sh cell.lvs.spice xschem/cell_lvs.sch
+
+# Raw netgen, if you want it. Strip XSchem's commented top-level block first:
+awk '/^[*][*][.]subckt/{s=1;next} /^[*][*][.]ends/{s=0;next} !s' \
+    cell_sch.spice > cell_sch.netgen.spice
+netgen -batch lvs "cell.lvs.spice cell" "cell_sch.netgen.spice cell" \
        $PDK_ROOT/sky130A/libs.tech/netgen/sky130A_setup.tcl
 ```
 

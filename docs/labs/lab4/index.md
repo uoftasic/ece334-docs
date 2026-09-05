@@ -107,11 +107,18 @@ which the flip-flop still captures. Measure it by sweeping that gap:
 . /foss/designs/common/.designinit
 cd /foss/designs/lab4_sram
 for d in 2000 1000 500 300 240 220 200; do
-  sed "s/^.param DSKEW=.*/.param DSKEW=${d}p/" spice/dff_char.spice > /tmp/s.spice
+  sed "s/^.param DSKEW=.*/.param DSKEW=${d}p/" spice/dff_char.spice > spice/_sweep.spice
   printf "%6s ps  " "$d"
-  ngspice -b /tmp/s.spice 2>&1 | grep '^qfinal'
+  ngspice -b spice/_sweep.spice 2>&1 | grep '^qfinal'
 done
+rm -f spice/_sweep.spice
 ```
+
+!!! warning "Write the scratch deck beside the original, not in `/tmp`"
+    `dff_char.spice` pulls the flip-flop in with `.include include/dff.spice`, a
+    path relative to the deck. Move the deck to `/tmp` and that include no longer
+    resolves: ngspice stops with *"Could not find include file"* and the loop
+    prints nothing at all. Keeping the copy in `spice/` keeps the path valid.
 
 ![Setup time sweep](images/01-setup-time.png)
 *Capture succeeds down to 240 ps and fails at 220 ps.*

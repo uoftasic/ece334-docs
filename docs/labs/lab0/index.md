@@ -121,8 +121,9 @@ Save with `Ctrl-S` as `inv.sch`.
 
 ### L1.4 Making a symbol
 
-**View → Make symbol** (`Shift-C`) generates a symbol from the ports, then `c`
-swaps between the schematic and symbol views.
+**Symbol → Make symbol from schematic** (`A`) generates a symbol from the ports,
+then `c` swaps between the schematic and symbol views. `Shift-C` is *draw arc*,
+not make-symbol — press it by mistake and you leave a stray arc behind.
 
 ![The inverter symbol](images/04-inverter-symbol.png)
 *Symbol view. Red squares are the pins. `@name` is substituted with each
@@ -171,7 +172,8 @@ write pulsegen.raw v(in) v(n3) v(out)
 .endc
 ```
 
-Select a wire and press `p` to plot it.
+Plot with the menubar: **Waves → Tran**, then pick the `.raw` the simulation
+wrote. (`p` is *draw polygon* in XSchem, not plot.)
 
 ![Pulse generator waveforms](images/07-pulsegen-waves.png)
 *Each rising edge of `in` produces one short low-going pulse on `out`.*
@@ -221,14 +223,26 @@ box 0.75um -0.4um 1.05um 1.4um
 paint poly
 ```
 
-Add a contact at each end so the source and drain can be wired:
+Add a contact at each end so the source and drain can be wired. Paint the local
+interconnect **first**, then the contact inset inside it:
 
 ```
 box 0.05um 0.1um 0.55um 0.9um
+paint li
+box 0.15um 0.2um 0.45um 0.8um
 paint ndcontact
 box 1.25um 0.1um 1.75um 0.9um
+paint li
+box 1.35um 0.2um 1.65um 0.8um
 paint ndcontact
 ```
+
+!!! warning "A contact with no `li` over it fails DRC everywhere"
+    Rule `li.5` wants local interconnect overhanging every cut. Paint the two
+    `ndcontact` rectangles on their own and Magic reports **16** violations, not
+    zero — which is why the `li` rectangle comes first and the contact is inset
+    inside it. You meet the same rule again in Lab 2, on every contact in the
+    NAND2.
 
 Press `v` to fit the view.
 
@@ -260,7 +274,8 @@ drc why
 `drc why` names the rule that was broken, which is faster than guessing. Get
 back to zero before you finish.
 
-Save with `Ctrl-S`.
+Save by typing `save fet` in tkcon, or **File → Save**. Magic binds `Ctrl-S` to
+*select less*, so it writes nothing and gives no warning.
 
 ---
 
